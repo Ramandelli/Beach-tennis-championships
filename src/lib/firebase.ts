@@ -21,7 +21,8 @@ import {
   where,
   getDocs,
   orderBy,
-  limit
+  limit as firestoreLimit,
+  Timestamp
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -219,14 +220,14 @@ export const getTournaments = async (status?: 'upcoming' | 'active' | 'completed
     const tournaments: Tournament[] = [];
     
     querySnapshot.forEach((doc) => {
-      const data = doc.data() as Tournament;
+      const data = doc.data();
       // Convert Firestore timestamps to Date objects
       const tournament = {
         ...data,
-        startDate: data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate),
-        endDate: data.endDate.toDate ? data.endDate.toDate() : new Date(data.endDate),
-        createdAt: data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
-      };
+        startDate: data.startDate instanceof Timestamp ? data.startDate.toDate() : new Date(data.startDate),
+        endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : new Date(data.endDate),
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
+      } as Tournament;
       tournaments.push(tournament);
     });
     
@@ -365,7 +366,7 @@ export const getPlayerRanking = async (limit = 20) => {
     const q = query(
       collection(db, "players"),
       orderBy("stats.winRate", "desc"),
-      limit(limit)
+      firestoreLimit(limit)
     );
     
     const querySnapshot = await getDocs(q);
