@@ -157,7 +157,9 @@ export const getPlayerProfile = async (uid: string) => {
 
 export const updatePlayerProfile = async (uid: string, data: Partial<PlayerProfile>) => {
   try {
+    console.log(`Updating profile for user ${uid} with data:`, data);
     await updateDoc(doc(db, "players", uid), data);
+    console.log("Profile updated successfully");
   } catch (error) {
     console.error("Error updating player profile:", error);
     throw error;

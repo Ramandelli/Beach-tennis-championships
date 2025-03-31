@@ -30,7 +30,7 @@ const Profile = () => {
     console.log("Profile component - received playerProfile:", playerProfile);
     if (playerProfile) {
       setName(playerProfile.name || "");
-      setAge(playerProfile.age?.toString() || "");
+      setAge(playerProfile.age ? playerProfile.age.toString() : "");
       setGender(playerProfile.gender || "");
       setAvatarPreview(playerProfile.avatarUrl || null);
     }
@@ -52,20 +52,23 @@ const Profile = () => {
     setLoading(true);
     
     try {
-      // Update profile data
+      // Prepare profile data object
       const profileData: { name?: string; age?: number; gender?: string } = {};
       
-      if (name && name !== playerProfile?.name) {
+      // Always include these fields if they have values, regardless of comparison with current profile
+      if (name) {
         profileData.name = name;
       }
       
-      if (age && (!playerProfile?.age || parseInt(age) !== playerProfile.age)) {
+      if (age) {
         profileData.age = parseInt(age);
       }
       
-      if (gender && gender !== playerProfile?.gender) {
+      if (gender) {
         profileData.gender = gender;
       }
+      
+      console.log("Updating profile with data:", profileData);
       
       if (Object.keys(profileData).length > 0) {
         await updatePlayerProfile(user.uid, profileData);
@@ -99,7 +102,7 @@ const Profile = () => {
     // Reset form values to current profile values
     if (playerProfile) {
       setName(playerProfile.name || "");
-      setAge(playerProfile.age?.toString() || "");
+      setAge(playerProfile.age ? playerProfile.age.toString() : "");
       setGender(playerProfile.gender || "");
       setAvatarPreview(playerProfile.avatarUrl || null);
     }
