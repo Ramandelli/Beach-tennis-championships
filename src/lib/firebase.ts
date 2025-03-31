@@ -22,7 +22,8 @@ import {
   getDocs,
   orderBy,
   limit as firestoreLimit,
-  Timestamp
+  Timestamp,
+  DocumentData
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -220,7 +221,7 @@ export const getTournaments = async (status?: 'upcoming' | 'active' | 'completed
     const tournaments: Tournament[] = [];
     
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as DocumentData;
       // Convert Firestore timestamps to Date objects
       const tournament = {
         ...data,

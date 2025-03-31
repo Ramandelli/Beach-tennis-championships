@@ -26,6 +26,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
+    console.log("Profile component - received playerProfile:", playerProfile);
     if (playerProfile) {
       setName(playerProfile.name || "");
       setAge(playerProfile.age?.toString() || "");
@@ -90,7 +91,23 @@ const Profile = () => {
     }
   };
   
-  if (!playerProfile) return null;
+  console.log("Rendering profile component with playerProfile:", playerProfile);
+  
+  if (!user) {
+    console.log("No user, redirecting to login");
+    navigate("/login");
+    return null;
+  }
+  
+  if (!playerProfile) {
+    console.log("No player profile yet");
+    return (
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-beach-blue mb-4" />
+        <p className="text-lg">Carregando informações do perfil...</p>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto px-4 py-8">

@@ -25,12 +25,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setUser(user);
       
       if (user) {
         try {
+          console.log("Fetching player profile for:", user.uid);
           const profile = await getPlayerProfile(user.uid);
+          console.log("Profile data:", profile);
           setPlayerProfile(profile);
         } catch (error) {
           console.error("Error fetching player profile:", error);
