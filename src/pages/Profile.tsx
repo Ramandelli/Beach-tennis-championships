@@ -14,7 +14,7 @@ import { updatePlayerProfile, uploadAvatar } from "@/lib/firebase";
 import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown } from "lucide-react";
 
 const Profile = () => {
-  const { user, playerProfile } = useAuth();
+  const { user, playerProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -99,8 +99,8 @@ const Profile = () => {
     return null;
   }
   
-  if (!playerProfile) {
-    console.log("No player profile yet");
+  if (authLoading || !playerProfile) {
+    console.log("Loading or no player profile yet");
     return (
       <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-beach-blue mb-4" />
@@ -139,16 +139,16 @@ const Profile = () => {
                 <div>
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">Taxa de Vitória</span>
-                    <span className="text-sm font-medium">{playerProfile.stats.winRate.toFixed(1)}%</span>
+                    <span className="text-sm font-medium">{playerProfile.stats?.winRate?.toFixed(1) || "0.0"}%</span>
                   </div>
-                  <Progress value={playerProfile.stats.winRate} className="h-2" />
+                  <Progress value={playerProfile.stats?.winRate || 0} className="h-2" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-3 rounded-lg text-center">
                     <div className="flex items-center justify-center mb-1 text-green-600">
                       <ThumbsUp className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats.wins}</span>
+                      <span className="font-bold text-lg">{playerProfile.stats?.wins || 0}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">Vitórias</p>
                   </div>
@@ -156,7 +156,7 @@ const Profile = () => {
                   <div className="bg-gray-50 p-3 rounded-lg text-center">
                     <div className="flex items-center justify-center mb-1 text-red-600">
                       <ThumbsDown className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats.losses}</span>
+                      <span className="font-bold text-lg">{playerProfile.stats?.losses || 0}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">Derrotas</p>
                   </div>
@@ -164,7 +164,7 @@ const Profile = () => {
                   <div className="bg-gray-50 p-3 rounded-lg text-center col-span-2">
                     <div className="flex items-center justify-center mb-1">
                       <Trophy className="h-5 w-5 mr-1 text-beach-blue" />
-                      <span className="font-bold text-lg">{playerProfile.stats.matches}</span>
+                      <span className="font-bold text-lg">{playerProfile.stats?.matches || 0}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">Total de Partidas</p>
                   </div>

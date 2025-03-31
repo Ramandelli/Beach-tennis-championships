@@ -34,7 +34,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("Fetching player profile for:", user.uid);
           const profile = await getPlayerProfile(user.uid);
           console.log("Profile data:", profile);
-          setPlayerProfile(profile);
+          
+          if (!profile) {
+            // Create a default profile if none exists
+            console.log("No profile found, creating a default one");
+            const defaultProfile: PlayerProfile = {
+              uid: user.uid,
+              email: user.email || "",
+              name: user.displayName || "Jogador",
+              createdAt: new Date(),
+              stats: {
+                matches: 0,
+                wins: 0,
+                losses: 0,
+                winRate: 0
+              }
+            };
+            setPlayerProfile(defaultProfile);
+          } else {
+            setPlayerProfile(profile as PlayerProfile);
+          }
         } catch (error) {
           console.error("Error fetching player profile:", error);
           toast({
