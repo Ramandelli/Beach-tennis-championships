@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { updatePlayerProfile, uploadAvatar } from "@/lib/firebase";
-import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X } from "lucide-react";
 
 const Profile = () => {
   const { user, playerProfile, loading: authLoading } = useAuth();
@@ -24,6 +24,7 @@ const Profile = () => {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   useEffect(() => {
     console.log("Profile component - received playerProfile:", playerProfile);
@@ -79,6 +80,9 @@ const Profile = () => {
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
       });
+      
+      // Exit edit mode after successful update
+      setIsEditing(false);
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
@@ -89,6 +93,18 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const cancelEdit = () => {
+    // Reset form values to current profile values
+    if (playerProfile) {
+      setName(playerProfile.name || "");
+      setAge(playerProfile.age?.toString() || "");
+      setGender(playerProfile.gender || "");
+      setAvatarPreview(playerProfile.avatarUrl || null);
+    }
+    setAvatar(null);
+    setIsEditing(false);
   };
   
   console.log("Rendering profile component with playerProfile:", playerProfile);
@@ -111,11 +127,22 @@ const Profile = () => {
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Meu Perfil</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Meu Perfil</h1>
+        {!isEditing && (
+          <Button 
+            onClick={() => setIsEditing(true)} 
+            className="bg-beach-blue hover:bg-beach-blue/90"
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Editar Perfil
+          </Button>
+        )}
+      </div>
       
       <div className="grid md:grid-cols-3 gap-8">
-        {/* Profile Stats */}
-        <div>
+        {/* Profile Stats - Always visible */}
+        <div className={isEditing ? "md:col-span-1" : "md:col-span-3 lg:col-span-3 xl:col-span-3"}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -133,6 +160,19 @@ const Profile = () => {
                 </Avatar>
                 <h2 className="text-xl font-bold">{playerProfile.name}</h2>
                 <p className="text-muted-foreground">{playerProfile.email}</p>
+                {playerProfile.age && (
+                  <p className="text-sm text-muted-foreground">Idade: {playerProfile.age} anos</p>
+                )}
+                {playerProfile.gender && (
+                  <p className="text-sm text-muted-foreground">
+                    Gênero: {
+                      playerProfile.gender === 'masculino' ? 'Masculino' :
+                      playerProfile.gender === 'feminino' ? 'Feminino' :
+                      playerProfile.gender === 'outro' ? 'Outro' : 
+                      'Prefiro não informar'
+                    }
+                  </p>
+                )}
               </div>
               
               <div className="space-y-4">
@@ -174,117 +214,123 @@ const Profile = () => {
           </Card>
         </div>
         
-        {/* Edit Profile */}
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <UserCog className="mr-2 h-5 w-5 text-beach-blue" />
-                Editar Perfil
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="avatar">Foto de Perfil</Label>
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={avatarPreview || undefined} alt={name} />
-                        <AvatarFallback className="bg-beach-blue text-white">
-                          {name.substring(0, 2).toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Label 
-                          htmlFor="avatar-upload" 
-                          className="cursor-pointer inline-flex items-center bg-muted px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/80"
-                        >
-                          <Camera className="mr-2 h-4 w-4" />
-                          Alterar foto
-                        </Label>
+        {/* Edit Profile - Only visible when editing */}
+        {isEditing && (
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserCog className="mr-2 h-5 w-5 text-beach-blue" />
+                  Editar Perfil
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="avatar">Foto de Perfil</Label>
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={avatarPreview || undefined} alt={name} />
+                          <AvatarFallback className="bg-beach-blue text-white">
+                            {name.substring(0, 2).toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <Label 
+                            htmlFor="avatar-upload" 
+                            className="cursor-pointer inline-flex items-center bg-muted px-4 py-2 rounded-md text-sm font-medium hover:bg-muted/80"
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Alterar foto
+                          </Label>
+                          <Input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarChange}
+                          />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            JPG, PNG ou GIF. Máximo 2MB.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome Completo</Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="age">Idade</Label>
                         <Input
-                          id="avatar-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleAvatarChange}
+                          id="age"
+                          type="number"
+                          placeholder="Idade"
+                          min="1"
+                          max="120"
+                          value={age}
+                          onChange={(e) => setAge(e.target.value)}
                         />
-                        <p className="text-sm text-muted-foreground mt-1">
-                          JPG, PNG ou GIF. Máximo 2MB.
-                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Gênero</Label>
+                        <Select value={gender} onValueChange={setGender}>
+                          <SelectTrigger id="gender">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="masculino">Masculino</SelectItem>
+                            <SelectItem value="feminino">Feminino</SelectItem>
+                            <SelectItem value="outro">Outro</SelectItem>
+                            <SelectItem value="prefiro_nao_informar">Prefiro não informar</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={cancelEdit}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="bg-beach-blue hover:bg-beach-blue/90"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Salvar Alterações
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="age">Idade</Label>
-                      <Input
-                        id="age"
-                        type="number"
-                        placeholder="Idade"
-                        min="1"
-                        max="120"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="gender">Gênero</Label>
-                      <Select value={gender} onValueChange={setGender}>
-                        <SelectTrigger id="gender">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="masculino">Masculino</SelectItem>
-                          <SelectItem value="feminino">Feminino</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                          <SelectItem value="prefiro_nao_informar">Prefiro não informar</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => navigate("/")}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-beach-blue hover:bg-beach-blue/90"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      "Salvar Alterações"
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
