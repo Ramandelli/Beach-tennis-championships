@@ -189,25 +189,34 @@ export const uploadAvatar = async (uid: string, file: File) => {
       contentType: file.type,
     };
     
-    console.log("Starting upload with metadata:", metadata);
-    const uploadResult = await uploadBytes(storageRef, file, metadata);
-    console.log("File uploaded successfully:", uploadResult);
-    
-    // Wait a moment before getting the download URL (sometimes Firebase needs a moment)
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Get the download URL
-    console.log("Getting download URL...");
-    const downloadURL = await getDownloadURL(storageRef);
-    console.log("Download URL obtained:", downloadURL);
-    
-    // Update player profile with avatar URL
-    console.log("Updating player profile with avatar URL...");
-    await updatePlayerProfile(uid, { avatarUrl: downloadURL });
-    console.log("Profile updated with new avatar URL");
-    
-    return downloadURL;
-  } catch (error) {
+    try {
+      console.log("Starting upload with metadata:", metadata);
+      const uploadResult = await uploadBytes(storageRef, file, metadata);
+      console.log("File uploaded successfully:", uploadResult);
+      
+      // Wait a moment before getting the download URL (sometimes Firebase needs a moment)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get the download URL
+      console.log("Getting download URL...");
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log("Download URL obtained:", downloadURL);
+      
+      // Update player profile with avatar URL
+      console.log("Updating player profile with avatar URL...");
+      await updatePlayerProfile(uid, { avatarUrl: downloadURL });
+      console.log("Profile updated with new avatar URL");
+      
+      return downloadURL;
+    } catch (storageError: any) {
+      if (storageError.code === 'storage/unauthorized') {
+        console.error("Storage permission denied. Please check Firebase Storage rules.");
+        throw new Error("Permissão negada no Firebase Storage. Entre em contato com o administrador para configurar as regras de acesso.");
+      } else {
+        throw storageError;
+      }
+    }
+  } catch (error: any) {
     console.error("Error in uploadAvatar function:", error);
     
     // Log more details if it's a Firebase storage error

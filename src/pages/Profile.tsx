@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,10 +101,12 @@ const Profile = () => {
           console.log("Avatar upload completed successfully, URL:", avatarUrl);
           
           // Force refresh the avatar preview with the new URL to avoid caching issues
-          setAvatarPreview(avatarUrl + "?t=" + Date.now());
-        } catch (avatarError) {
+          if (avatarUrl) {
+            setAvatarPreview(`${avatarUrl}?t=${Date.now()}`);
+          }
+        } catch (avatarError: any) {
           console.error("Error uploading avatar:", avatarError);
-          setUploadError("Não foi possível enviar a imagem. Tente novamente mais tarde ou use outro arquivo.");
+          setUploadError(avatarError.message || "Não foi possível enviar a imagem. Tente novamente mais tarde ou use outro arquivo.");
           throw avatarError; // Rethrow to handle in the outer catch
         }
       }
@@ -121,7 +122,7 @@ const Profile = () => {
       console.error("Error updating profile:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar seu perfil. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar seu perfil. Tente novamente.",
         variant: "destructive",
       });
     } finally {
