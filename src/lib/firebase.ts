@@ -168,16 +168,33 @@ export const updatePlayerProfile = async (uid: string, data: Partial<PlayerProfi
 
 export const uploadAvatar = async (uid: string, file: File) => {
   try {
-    const storageRef = ref(storage, `avatars/${uid}`);
-    await uploadBytes(storageRef, file);
+    console.log(`Starting avatar upload for user ${uid}`, file);
+    
+    // Create a storage reference with a unique filename to avoid cache issues
+    const timestamp = Date.now();
+    const storageRef = ref(storage, `avatars/${uid}_${timestamp}`);
+    
+    // Log the file size
+    console.log(`File size: ${file.size} bytes`);
+    
+    // Upload the file to Firebase Storage
+    console.log("Uploading file to storage...");
+    const uploadResult = await uploadBytes(storageRef, file);
+    console.log("File uploaded successfully:", uploadResult);
+    
+    // Get the download URL
+    console.log("Getting download URL...");
     const downloadURL = await getDownloadURL(storageRef);
+    console.log("Download URL obtained:", downloadURL);
     
     // Update player profile with avatar URL
+    console.log("Updating player profile with avatar URL...");
     await updatePlayerProfile(uid, { avatarUrl: downloadURL });
+    console.log("Profile updated with new avatar URL");
     
     return downloadURL;
   } catch (error) {
-    console.error("Error uploading avatar:", error);
+    console.error("Error in uploadAvatar function:", error);
     throw error;
   }
 };

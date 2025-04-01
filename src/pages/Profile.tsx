@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { updatePlayerProfile, uploadAvatar } from "@/lib/firebase";
 import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
   const { user, playerProfile, loading: authLoading } = useAuth();
@@ -25,6 +26,7 @@ const Profile = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
   useEffect(() => {
     console.log("Profile component - received playerProfile:", playerProfile);
@@ -39,8 +41,18 @@ const Profile = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setUploadError("O arquivo é muito grande. O tamanho máximo é 2MB.");
+        return;
+      }
+      
+      // Reset any previous errors
+      setUploadError(null);
       setAvatar(file);
       setAvatarPreview(URL.createObjectURL(file));
+      console.log("Avatar file selected:", file.name, file.type, file.size);
     }
   };
   
@@ -50,6 +62,7 @@ const Profile = () => {
     if (!user) return;
     
     setLoading(true);
+    setUploadError(null);
     
     try {
       // Prepare profile data object
@@ -76,7 +89,15 @@ const Profile = () => {
       
       // Upload avatar if changed
       if (avatar) {
-        await uploadAvatar(user.uid, avatar);
+        console.log("Starting avatar upload process...");
+        try {
+          await uploadAvatar(user.uid, avatar);
+          console.log("Avatar upload completed successfully");
+        } catch (avatarError) {
+          console.error("Error uploading avatar:", avatarError);
+          setUploadError("Não foi possível enviar a imagem. Tente um arquivo menor ou outro formato.");
+          throw avatarError; // Rethrow to handle in the outer catch
+        }
       }
       
       toast({
@@ -228,6 +249,13 @@ const Profile = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {uploadError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertTitle>Erro ao enviar imagem</AlertTitle>
+                    <AlertDescription>{uploadError}</AlertDescription>
+                  </Alert>
+                )}
+                
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
