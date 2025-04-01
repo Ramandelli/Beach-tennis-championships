@@ -168,19 +168,33 @@ export const updatePlayerProfile = async (uid: string, data: Partial<PlayerProfi
 
 export const uploadAvatar = async (uid: string, file: File) => {
   try {
-    console.log(`Starting avatar upload for user ${uid}`, file);
+    console.log(`Starting avatar upload for user ${uid}`);
+    console.log(`File details: name=${file.name}, type=${file.type}, size=${file.size} bytes`);
     
-    // Create a storage reference with a unique filename to avoid cache issues
+    // Check if the file is actually an image
+    if (!file.type.startsWith('image/')) {
+      console.error("File is not an image:", file.type);
+      throw new Error("O arquivo não é uma imagem válida");
+    }
+    
+    // Create a reference with a unique timestamp to avoid cache issues
     const timestamp = Date.now();
-    const storageRef = ref(storage, `avatars/${uid}_${timestamp}`);
+    const filename = `${uid}_${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const storageRef = ref(storage, `avatars/${filename}`);
     
-    // Log the file size
-    console.log(`File size: ${file.size} bytes`);
+    console.log(`Storage reference created: avatars/${filename}`);
     
-    // Upload the file to Firebase Storage
-    console.log("Uploading file to storage...");
-    const uploadResult = await uploadBytes(storageRef, file);
+    // Upload the file with metadata
+    const metadata = {
+      contentType: file.type,
+    };
+    
+    console.log("Starting upload with metadata:", metadata);
+    const uploadResult = await uploadBytes(storageRef, file, metadata);
     console.log("File uploaded successfully:", uploadResult);
+    
+    // Wait a moment before getting the download URL (sometimes Firebase needs a moment)
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Get the download URL
     console.log("Getting download URL...");
@@ -195,6 +209,13 @@ export const uploadAvatar = async (uid: string, file: File) => {
     return downloadURL;
   } catch (error) {
     console.error("Error in uploadAvatar function:", error);
+    
+    // Log more details if it's a Firebase storage error
+    if (error.code) {
+      console.error("Firebase error code:", error.code);
+      console.error("Firebase error message:", error.message);
+    }
+    
     throw error;
   }
 };

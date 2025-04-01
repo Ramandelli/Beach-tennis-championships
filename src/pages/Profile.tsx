@@ -48,6 +48,13 @@ const Profile = () => {
         return;
       }
       
+      // Check file type
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validImageTypes.includes(file.type)) {
+        setUploadError("Formato de arquivo não suportado. Use JPG, PNG, GIF ou WebP.");
+        return;
+      }
+      
       // Reset any previous errors
       setUploadError(null);
       setAvatar(file);
@@ -68,7 +75,7 @@ const Profile = () => {
       // Prepare profile data object
       const profileData: { name?: string; age?: number; gender?: string } = {};
       
-      // Always include these fields if they have values, regardless of comparison with current profile
+      // Always include these fields if they have values
       if (name) {
         profileData.name = name;
       }
@@ -91,11 +98,14 @@ const Profile = () => {
       if (avatar) {
         console.log("Starting avatar upload process...");
         try {
-          await uploadAvatar(user.uid, avatar);
-          console.log("Avatar upload completed successfully");
+          const avatarUrl = await uploadAvatar(user.uid, avatar);
+          console.log("Avatar upload completed successfully, URL:", avatarUrl);
+          
+          // Force refresh the avatar preview with the new URL to avoid caching issues
+          setAvatarPreview(avatarUrl + "?t=" + Date.now());
         } catch (avatarError) {
           console.error("Error uploading avatar:", avatarError);
-          setUploadError("Não foi possível enviar a imagem. Tente um arquivo menor ou outro formato.");
+          setUploadError("Não foi possível enviar a imagem. Tente novamente mais tarde ou use outro arquivo.");
           throw avatarError; // Rethrow to handle in the outer catch
         }
       }
