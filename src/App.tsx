@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Tournaments from "./pages/Tournaments";
+import MyTournaments from "./pages/MyTournaments";
 import Ranking from "./pages/Ranking";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,14 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/tournaments" element={<Tournaments />} />
+                  <Route 
+                    path="/my-tournaments" 
+                    element={
+                      <ProtectedRoute>
+                        <MyTournaments />
+                      </ProtectedRoute>
+                    } 
+                  />
                   <Route path="/ranking" element={<Ranking />} />
                   <Route 
                     path="/profile" 
