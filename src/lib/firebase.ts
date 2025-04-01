@@ -58,6 +58,12 @@ export interface PlayerProfile {
     wins: number;
     losses: number;
     winRate: number;
+    // New stats for beach tennis players
+    tournaments?: number;     // Number of tournaments participated in
+    podiums?: number;         // Number of times on the podium (1st, 2nd, 3rd place)
+    aces?: number;            // Number of aces served
+    winningStreak?: number;   // Current or highest winning streak
+    consistencyScore?: number; // Percentage score of consistency (can be calculated various ways)
   };
   isAdmin?: boolean;
 }
@@ -109,7 +115,12 @@ export const signUp = async (email: string, password: string, name: string) => {
         matches: 0,
         wins: 0,
         losses: 0,
-        winRate: 0
+        winRate: 0,
+        tournaments: 0,
+        podiums: 0,
+        aces: 0,
+        winningStreak: 0,
+        consistencyScore: 0
       }
     };
     

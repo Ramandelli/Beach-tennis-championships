@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { updatePlayerProfile, uploadAvatar } from "@/lib/firebase";
-import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X } from "lucide-react";
+import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X, Target, Activity, Star, Clock } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
@@ -211,6 +211,7 @@ const Profile = () => {
               </div>
               
               <div className="space-y-4">
+                {/* Win Rate */}
                 <div>
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">Taxa de Vitória</span>
@@ -219,6 +220,16 @@ const Profile = () => {
                   <Progress value={playerProfile.stats?.winRate || 0} className="h-2" />
                 </div>
                 
+                {/* New Metric: Consistency Score */}
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">Consistência</span>
+                    <span className="text-sm font-medium">{playerProfile.stats?.consistencyScore?.toFixed(1) || "0.0"}%</span>
+                  </div>
+                  <Progress value={playerProfile.stats?.consistencyScore || 0} className="h-2" />
+                </div>
+                
+                {/* Basic Stats Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-3 rounded-lg text-center">
                     <div className="flex items-center justify-center mb-1 text-green-600">
@@ -235,14 +246,50 @@ const Profile = () => {
                     </div>
                     <p className="text-sm text-muted-foreground">Derrotas</p>
                   </div>
-                  
-                  <div className="bg-gray-50 p-3 rounded-lg text-center col-span-2">
-                    <div className="flex items-center justify-center mb-1">
-                      <Trophy className="h-5 w-5 mr-1 text-beach-blue" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.matches || 0}</span>
+                </div>
+                
+                {/* Additional Metrics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-lg text-center">
+                    <div className="flex items-center justify-center mb-1 text-amber-500">
+                      <Trophy className="h-5 w-5 mr-1" />
+                      <span className="font-bold text-lg">{playerProfile.stats?.tournaments || 0}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Total de Partidas</p>
+                    <p className="text-sm text-muted-foreground">Campeonatos</p>
                   </div>
+                  
+                  <div className="bg-gray-50 p-3 rounded-lg text-center">
+                    <div className="flex items-center justify-center mb-1 text-purple-600">
+                      <Star className="h-5 w-5 mr-1" />
+                      <span className="font-bold text-lg">{playerProfile.stats?.podiums || 0}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Pódios</p>
+                  </div>
+                  
+                  <div className="bg-gray-50 p-3 rounded-lg text-center">
+                    <div className="flex items-center justify-center mb-1 text-blue-600">
+                      <Target className="h-5 w-5 mr-1" />
+                      <span className="font-bold text-lg">{playerProfile.stats?.aces || 0}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Aces</p>
+                  </div>
+                  
+                  <div className="bg-gray-50 p-3 rounded-lg text-center">
+                    <div className="flex items-center justify-center mb-1 text-orange-500">
+                      <Activity className="h-5 w-5 mr-1" />
+                      <span className="font-bold text-lg">{playerProfile.stats?.winningStreak || 0}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Sequência</p>
+                  </div>
+                </div>
+                
+                {/* Total Matches at the bottom */}
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <Clock className="h-5 w-5 mr-1 text-beach-blue" />
+                    <span className="font-bold text-lg">{playerProfile.stats?.matches || 0}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Total de Partidas</p>
                 </div>
               </div>
             </CardContent>
