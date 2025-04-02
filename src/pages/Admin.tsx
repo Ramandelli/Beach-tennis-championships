@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ import {
   Match
 } from "@/lib/firebase";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarIcon, TrophyIcon, UsersIcon, ClockIcon, CheckCircleIcon } from "lucide-react";
+import { CalendarIcon, TrophyIcon, UsersIcon, ClockIcon, CheckCircleIcon, PlusCircleIcon, XCircleIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { addDays, format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -42,6 +42,7 @@ const AdminPage = () => {
   });
   const [categories, setCategories] = useState(["masculino", "feminino", "misto"]);
   const [newCategory, setNewCategory] = useState("");
+  const [openTournamentDialog, setOpenTournamentDialog] = useState(false);
   
   // Fetch tournaments
   const { data: tournaments, isLoading: isLoadingTournaments, refetch: refetchTournaments } = useQuery({
@@ -92,6 +93,9 @@ const AdminPage = () => {
       });
       setCategories(["masculino", "feminino", "misto"]);
       
+      // Close dialog
+      setOpenTournamentDialog(false);
+      
       // Refresh tournaments list
       refetchTournaments();
     } catch (error) {
@@ -102,6 +106,18 @@ const AdminPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const resetTournamentForm = () => {
+    setTournamentName("");
+    setTournamentDescription("");
+    setTournamentLocation("");
+    setDateRange({
+      from: new Date(),
+      to: addDays(new Date(), 1),
+    });
+    setCategories(["masculino", "feminino", "misto"]);
+    setOpenTournamentDialog(false);
   };
 
   const handleAddCategory = () => {
@@ -139,9 +155,12 @@ const AdminPage = () => {
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Gerenciar Campeonatos</h2>
             
-            <Dialog>
+            <Dialog open={openTournamentDialog} onOpenChange={setOpenTournamentDialog}>
               <DialogTrigger asChild>
-                <Button>Criar Novo Campeonato</Button>
+                <Button>
+                  <PlusCircleIcon className="mr-1" />
+                  Criar Novo Campeonato
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
@@ -247,9 +266,22 @@ const AdminPage = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-end">
-                  <Button onClick={handleCreateTournament}>Criar Campeonato</Button>
-                </div>
+                <DialogFooter className="flex justify-end gap-2">
+                  <Button 
+                    variant="cancel" 
+                    onClick={resetTournamentForm}
+                  >
+                    <XCircleIcon size={16} />
+                    Cancelar
+                  </Button>
+                  <Button 
+                    variant="success" 
+                    onClick={handleCreateTournament}
+                  >
+                    <CheckCircleIcon size={16} />
+                    Criar Campeonato
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
