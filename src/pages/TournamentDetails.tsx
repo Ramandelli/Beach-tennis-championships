@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarClock, MapPin, Users, Trophy, ArrowLeft } from "lucide-react";
-import { format, isValid } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 const TournamentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,18 +60,30 @@ const TournamentDetails = () => {
     fetchTournament();
   }, [id, toast]);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return "Data não definida";
+    
     try {
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (!isValid(dateObj)) return "Data inválida";
-      return dateObj.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      // Handle string dates from Firestore
+      let dateObj: Date;
+      if (typeof date === 'string') {
+        // Try to parse ISO string
+        dateObj = parseISO(date);
+      } else {
+        // Already a Date object
+        dateObj = date;
+      }
+      
+      // Check if the date is valid before formatting
+      if (!isValid(dateObj)) {
+        console.log("Invalid date object:", date);
+        return "Data não definida";
+      }
+      
+      return format(dateObj, "dd/MM/yyyy");
     } catch (error) {
       console.error("Error formatting date:", error, date);
-      return "Data inválida";
+      return "Data não definida";
     }
   };
 
@@ -238,7 +250,7 @@ const TournamentDetails = () => {
                         </TableCell>
                         <TableCell>{match.category}</TableCell>
                         <TableCell>
-                          {match.date ? formatDate(match.date) : "A definir"}
+                          {formatDate(match.date)}
                         </TableCell>
                         <TableCell>
                           {match.score || "Não realizada"}

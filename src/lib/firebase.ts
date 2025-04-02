@@ -355,20 +355,50 @@ export const createMatch = async (matchData: Omit<Match, 'id'>) => {
 
 export const updateMatchResult = async (matchId: string, score: string, winner: string[]) => {
   try {
+    console.log(`Updating match ${matchId} with score: ${score} and winner: ${winner.join(', ')}`);
+    
     const matchRef = doc(db, "matches", matchId);
     const matchDoc = await getDoc(matchRef);
     
     if (!matchDoc.exists()) {
+      console.error("Match not found:", matchId);
       throw new Error("Match not found");
     }
     
     const match = matchDoc.data() as Match;
+    console.log("Retrieved match data:", match);
     
+    // Update match document with new data
     await updateDoc(matchRef, { 
       score, 
       winner,
       status: 'completed' 
     });
+    console.log("Match document updated successfully");
+    
+    // Update the match in the tournament document
+    const tournamentRef = doc(db, "tournaments", match.tournamentId);
+    const tournamentDoc = await getDoc(tournamentRef);
+    
+    if (tournamentDoc.exists()) {
+      const tournament = tournamentDoc.data() as Tournament;
+      const updatedMatches = tournament.matches.map(m => {
+        if (m.id === matchId) {
+          return {
+            ...m,
+            score,
+            winner,
+            status: 'completed'
+          };
+        }
+        return m;
+      });
+      
+      await updateDoc(tournamentRef, { 
+        matches: updatedMatches
+      });
+      console.log("Tournament document updated with new match data");
+    }
     
     // Update player stats
     const winnerIds = winner;
@@ -390,6 +420,7 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
           "stats.wins": wins,
           "stats.winRate": winRate
         });
+        console.log(`Updated winner stats for player ${playerId}`);
       }
     }
     
@@ -409,6 +440,7 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
           "stats.losses": losses,
           "stats.winRate": winRate
         });
+        console.log(`Updated loser stats for player ${playerId}`);
       }
     }
     

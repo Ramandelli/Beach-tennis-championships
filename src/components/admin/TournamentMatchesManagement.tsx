@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +26,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircleIcon, ClockIcon, PlusCircleIcon, TrophyIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { format, isValid } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -155,6 +155,19 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     }
     
     try {
+      // Get the match that is being updated
+      const matchToUpdate = matches.find(match => match.id === updatingMatchId);
+      
+      if (!matchToUpdate) {
+        throw new Error("Match not found");
+      }
+      
+      console.log("Updating match result with data:", {
+        matchId: updatingMatchId,
+        score: matchScore,
+        winner: matchWinner
+      });
+      
       await updateMatchResult(updatingMatchId, matchScore, matchWinner);
       
       toast({
@@ -166,6 +179,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       setMatchScore("");
       setMatchWinner([]);
       
+      // Important: call onRefetch to update the tournament data
       onRefetch();
     } catch (error) {
       console.error("Error updating match result:", error);
@@ -196,22 +210,30 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
   };
 
   // Helper function to safely format dates
-  const formatMatchDate = (date: Date | undefined) => {
-    if (!date) return "Data inválida";
-    
-    // Ensure we have a valid Date object
-    const dateObj = date instanceof Date ? date : new Date(date);
-    
-    // Check if the date is valid before formatting
-    if (!isValid(dateObj)) {
-      return "Data inválida";
-    }
+  const formatMatchDate = (date: Date | undefined | string) => {
+    if (!date) return "Data não definida";
     
     try {
+      // Handle string dates from Firestore
+      let dateObj: Date;
+      if (typeof date === 'string') {
+        // Try to parse ISO string
+        dateObj = parseISO(date);
+      } else {
+        // Already a Date object
+        dateObj = date;
+      }
+      
+      // Check if the date is valid before formatting
+      if (!isValid(dateObj)) {
+        console.log("Invalid date object:", date);
+        return "Data não definida";
+      }
+      
       return format(dateObj, "dd/MM/yyyy");
     } catch (error) {
       console.error("Error formatting date:", error, date);
-      return "Data inválida";
+      return "Data não definida";
     }
   };
 
