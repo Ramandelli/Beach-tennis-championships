@@ -26,7 +26,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircleIcon, ClockIcon, PlusCircleIcon, TrophyIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -192,6 +192,26 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       case "final": return "Final";
       case "bronze-match": return "Disputa 3º lugar";
       default: return roundCode;
+    }
+  };
+
+  // Helper function to safely format dates
+  const formatMatchDate = (date: Date | undefined) => {
+    if (!date) return "Data inválida";
+    
+    // Ensure we have a valid Date object
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Check if the date is valid before formatting
+    if (!isValid(dateObj)) {
+      return "Data inválida";
+    }
+    
+    try {
+      return format(dateObj, "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error formatting date:", error, date);
+      return "Data inválida";
     }
   };
 
@@ -398,7 +418,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
           <TableBody>
             {filteredMatches.map((match) => (
               <TableRow key={match.id}>
-                <TableCell>{format(new Date(match.date), "dd/MM/yyyy")}</TableCell>
+                <TableCell>{formatMatchDate(match.date)}</TableCell>
                 <TableCell>{match.category}</TableCell>
                 <TableCell>{formatRoundName(match.round)}</TableCell>
                 <TableCell>{getTeamDisplay(match.team1)}</TableCell>

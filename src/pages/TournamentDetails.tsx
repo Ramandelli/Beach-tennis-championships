@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarClock, MapPin, Users, Trophy, ArrowLeft } from "lucide-react";
+import { format, isValid } from "date-fns";
 
 const TournamentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,11 +61,18 @@ const TournamentDetails = () => {
   }, [id, toast]);
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (!isValid(dateObj)) return "Data inválida";
+      return dateObj.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error, date);
+      return "Data inválida";
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -225,13 +233,7 @@ const TournamentDetails = () => {
                       <TableRow key={index}>
                         <TableCell>
                           <div className="font-medium">
-                            {match.player1Id && players[match.player1Id] 
-                              ? players[match.player1Id].name 
-                              : "Jogador 1"} 
-                            {" vs "}
-                            {match.player2Id && players[match.player2Id] 
-                              ? players[match.player2Id].name 
-                              : "Jogador 2"}
+                            {getTeamDisplay(match.team1)} vs {getTeamDisplay(match.team2)}
                           </div>
                         </TableCell>
                         <TableCell>{match.category}</TableCell>
@@ -239,19 +241,17 @@ const TournamentDetails = () => {
                           {match.date ? formatDate(match.date) : "A definir"}
                         </TableCell>
                         <TableCell>
-                          {match.completed 
-                            ? `${match.player1Score} - ${match.player2Score}` 
-                            : "Não realizada"}
+                          {match.score || "Não realizada"}
                         </TableCell>
                         <TableCell>
                           <Badge 
                             className={
-                              match.completed 
+                              match.status === 'completed'
                                 ? "bg-green-100 text-green-800" 
                                 : "bg-yellow-100 text-yellow-800"
                             }
                           >
-                            {match.completed ? "Concluída" : "Pendente"}
+                            {match.status === 'completed' ? "Concluída" : "Pendente"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -341,6 +341,11 @@ const TournamentDetails = () => {
       </Tabs>
     </div>
   );
+};
+
+// Helper function to display team members
+const getTeamDisplay = (teamIds: string[]) => {
+  return teamIds.join(' & ');
 };
 
 export default TournamentDetails;
