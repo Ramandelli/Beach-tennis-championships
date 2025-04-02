@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,11 @@ import {
   getPlayerProfile, 
   updateDoc, 
   doc, 
-  db
+  db,
+  collection,
+  query,
+  where,
+  getDocs
 } from "@/lib/firebase";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircleIcon, XCircleIcon, UserPlusIcon } from "lucide-react";
@@ -36,7 +39,6 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
   const [newPlayerEmail, setNewPlayerEmail] = useState("");
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   
-  // Fetch player profiles for the tournament participants
   const { data: playerProfiles, isLoading } = useQuery({
     queryKey: ['tournament-players', tournament.id],
     queryFn: async () => {
@@ -53,7 +55,6 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
     }
   });
   
-  // Filtered players based on search and category
   const filteredPlayers = playerProfiles?.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           player.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -64,7 +65,6 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
     try {
       const updatedParticipants = tournament.participants.filter(id => id !== playerId);
       
-      // Update tournament in Firestore
       const tournamentRef = doc(db, "tournaments", tournament.id);
       await updateDoc(tournamentRef, { participants: updatedParticipants });
       
@@ -90,10 +90,9 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
     setIsAddingPlayer(true);
     
     try {
-      // Query for player with matching email
-      const querySnapshot = await db.collection("players")
-        .where("email", "==", newPlayerEmail)
-        .get();
+      const playersRef = collection(db, "players");
+      const q = query(playersRef, where("email", "==", newPlayerEmail));
+      const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
         toast({
@@ -107,7 +106,6 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
       const playerDoc = querySnapshot.docs[0];
       const playerId = playerDoc.id;
       
-      // Check if player is already in the tournament
       if (tournament.participants.includes(playerId)) {
         toast({
           title: "Jogador já inscrito",
@@ -117,10 +115,8 @@ const TournamentPlayersManagement = ({ tournament, onRefetch }: TournamentPlayer
         return;
       }
       
-      // Add player to tournament
       const updatedParticipants = [...tournament.participants, playerId];
       
-      // Update tournament in Firestore
       const tournamentRef = doc(db, "tournaments", tournament.id);
       await updateDoc(tournamentRef, { participants: updatedParticipants });
       

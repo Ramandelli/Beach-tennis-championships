@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -58,7 +57,6 @@ export interface PlayerProfile {
     wins: number;
     losses: number;
     winRate: number;
-    // New stats for beach tennis players
     tournaments?: number;     // Number of tournaments participated in
     podiums?: number;         // Number of times on the podium (1st, 2nd, 3rd place)
     aces?: number;            // Number of aces served
@@ -444,4 +442,4 @@ export const getPlayerRanking = async (limit = 20) => {
   }
 };
 
-export { auth, db, storage };
+export { auth, db, storage, doc, updateDoc, collection, query, where, getDocs };
