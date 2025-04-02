@@ -1,35 +1,21 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Tournament, 
-  Match,
-  PlayerProfile,
-  getPlayerProfile, 
-  createMatch,
-  updateMatchResult,
-  db,
-  doc,
-  updateDoc
-} from "@/lib/firebase";
-import { useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon, ClockIcon, PlusCircleIcon, TrophyIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { format, isValid, parseISO } from "date-fns";
+import { Label } from "@/components/ui/label";
+import { format, isValid } from "date-fns";
+import { PlusCircleIcon, CalendarIcon, XCircleIcon, CheckCircleIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { getPlayerProfile, createMatch, updateMatchResult, Tournament, Match } from "@/lib/firebase";
+import { useQuery } from "@tanstack/react-query";
 
 interface TournamentMatchesManagementProps {
   tournament: Tournament;
@@ -38,86 +24,57 @@ interface TournamentMatchesManagementProps {
 
 const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatchesManagementProps) => {
   const { toast } = useToast();
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedRound, setSelectedRound] = useState<string>("all");
-  
-  // Match creation state
-  const [isCreatingMatch, setIsCreatingMatch] = useState(false);
-  const [matchCategory, setMatchCategory] = useState<string>("");
-  const [matchRound, setMatchRound] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedRound, setSelectedRound] = useState("");
+  const [selectedTeam1, setSelectedTeam1] = useState<string[]>([]);
+  const [selectedTeam2, setSelectedTeam2] = useState<string[]>([]);
   const [matchDate, setMatchDate] = useState<Date | undefined>(new Date());
-  const [team1Players, setTeam1Players] = useState<string[]>([]);
-  const [team2Players, setTeam2Players] = useState<string[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [matchScore, setMatchScore] = useState("");
+  const [selectedWinner, setSelectedWinner] = useState<"team1" | "team2" | null>(null);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openResultDialog, setOpenResultDialog] = useState(false);
+  const [playerAces, setPlayerAces] = useState<Record<string, number>>({});
   
-  // Match result update state
-  const [updatingMatchId, setUpdatingMatchId] = useState<string | null>(null);
-  const [matchScore, setMatchScore] = useState<string>("");
-  const [matchWinner, setMatchWinner] = useState<string[]>([]);
-  
-  // Common round names for beach tennis
-  const roundOptions = [
-    "group-stage", "round-of-16", "quarter-final", "semi-final", "final", "bronze-match"
-  ];
-  
-  // Fetch player profiles for the tournament participants
-  const { data: playerProfiles, isLoading: isLoadingPlayers } = useQuery({
-    queryKey: ['tournament-players-for-matches', tournament.id],
+  // Fetch participants data
+  const { data: participants, isLoading: isLoadingParticipants } = useQuery({
+    queryKey: ['tournament-participants', tournament.id],
     queryFn: async () => {
-      const profiles: Record<string, PlayerProfile> = {};
-      
+      const players = [];
       for (const playerId of tournament.participants) {
-        const profile = await getPlayerProfile(playerId);
-        if (profile) {
-          profiles[playerId] = profile;
+        const player = await getPlayerProfile(playerId);
+        if (player) {
+          players.push(player);
         }
       }
-      
-      return profiles;
+      return players;
     }
   });
   
-  // Get all matches in this tournament
-  const matches = tournament.matches || [];
-  
-  // Filter matches based on category and round
-  const filteredMatches = matches.filter(match => {
-    const matchesCategory = selectedCategory === "all" || match.category === selectedCategory;
-    const matchesRound = selectedRound === "all" || match.round === selectedRound;
-    return matchesCategory && matchesRound;
-  });
-  
-  const getPlayerName = (playerId: string) => {
-    return playerProfiles?.[playerId]?.name || 'Jogador desconhecido';
-  };
-  
-  const getTeamDisplay = (teamIds: string[]) => {
-    return teamIds.map(id => getPlayerName(id)).join(' & ');
-  };
+  const rounds = ["round-1", "round-2", "quarter-final", "semi-final", "final"];
   
   const handleCreateMatch = async () => {
-    if (!matchCategory || !matchRound || !matchDate || team1Players.length === 0 || team2Players.length === 0) {
+    if (!selectedCategory || !selectedRound || selectedTeam1.length === 0 || selectedTeam2.length === 0 || !matchDate) {
       toast({
-        title: "Dados incompletos",
-        description: "Preencha todos os campos para criar a partida",
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive",
       });
       return;
     }
     
-    setIsCreatingMatch(true);
-    
     try {
-      const newMatch: Omit<Match, 'id'> = {
+      const matchData = {
         tournamentId: tournament.id,
-        category: matchCategory,
-        round: matchRound,
-        team1: team1Players,
-        team2: team2Players,
+        category: selectedCategory,
+        round: selectedRound,
+        team1: selectedTeam1,
+        team2: selectedTeam2,
         date: matchDate,
-        status: 'scheduled'
+        status: 'scheduled' as 'scheduled' | 'completed' | 'cancelled'
       };
       
-      await createMatch(newMatch);
+      await createMatch(matchData);
       
       toast({
         title: "Sucesso",
@@ -125,12 +82,16 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       });
       
       // Reset form
-      setMatchCategory("");
-      setMatchRound("");
+      setSelectedCategory("");
+      setSelectedRound("");
+      setSelectedTeam1([]);
+      setSelectedTeam2([]);
       setMatchDate(new Date());
-      setTeam1Players([]);
-      setTeam2Players([]);
       
+      // Close dialog
+      setOpenCreateDialog(false);
+      
+      // Refresh tournament data
       onRefetch();
     } catch (error) {
       console.error("Error creating match:", error);
@@ -139,47 +100,43 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
         description: "Não foi possível criar a partida",
         variant: "destructive",
       });
-    } finally {
-      setIsCreatingMatch(false);
     }
   };
   
   const handleUpdateMatchResult = async () => {
-    if (!updatingMatchId || !matchScore || !matchWinner || matchWinner.length === 0) {
+    if (!selectedMatch || !matchScore || !selectedWinner) {
       toast({
-        title: "Dados incompletos",
-        description: "Preencha o placar e selecione o vencedor",
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      // Get the match that is being updated
-      const matchToUpdate = matches.find(match => match.id === updatingMatchId);
+      const winnerTeam = selectedWinner === "team1" ? selectedMatch.team1 : selectedMatch.team2;
       
-      if (!matchToUpdate) {
-        throw new Error("Match not found");
-      }
+      // Only include aces record if at least one player has aces
+      const hasAces = Object.values(playerAces).some(value => value > 0);
+      const acesRecord = hasAces ? playerAces : undefined;
       
-      console.log("Updating match result with data:", {
-        matchId: updatingMatchId,
-        score: matchScore,
-        winner: matchWinner
-      });
-      
-      await updateMatchResult(updatingMatchId, matchScore, matchWinner);
+      await updateMatchResult(selectedMatch.id, matchScore, winnerTeam, acesRecord);
       
       toast({
         title: "Sucesso",
         description: "Resultado da partida atualizado com sucesso",
       });
       
-      setUpdatingMatchId(null);
+      // Reset form
+      setSelectedMatch(null);
       setMatchScore("");
-      setMatchWinner([]);
+      setSelectedWinner(null);
+      setPlayerAces({});
       
-      // Important: call onRefetch to update the tournament data
+      // Close dialog
+      setOpenResultDialog(false);
+      
+      // Refresh tournament data
       onRefetch();
     } catch (error) {
       console.error("Error updating match result:", error);
@@ -191,123 +148,123 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     }
   };
   
-  const openResultDialog = (match: Match) => {
-    setUpdatingMatchId(match.id);
+  const handleSelectMatch = (match: Match) => {
+    setSelectedMatch(match);
     setMatchScore(match.score || "");
-    setMatchWinner(match.winner || []);
+    setSelectedWinner(null);
+    
+    // Initialize aces count for all players in the match
+    const initialAces: Record<string, number> = {};
+    [...match.team1, ...match.team2].forEach(playerId => {
+      initialAces[playerId] = 0;
+    });
+    setPlayerAces(initialAces);
+    
+    setOpenResultDialog(true);
   };
   
-  const formatRoundName = (roundCode: string) => {
-    switch (roundCode) {
-      case "group-stage": return "Fase de grupos";
-      case "round-of-16": return "Oitavas de final";
-      case "quarter-final": return "Quartas de final";
-      case "semi-final": return "Semifinal";
-      case "final": return "Final";
-      case "bronze-match": return "Disputa 3º lugar";
-      default: return roundCode;
-    }
+  const getPlayerName = (playerId: string) => {
+    if (!participants) return playerId;
+    const player = participants.find(p => p.uid === playerId);
+    return player ? player.name : playerId;
   };
-
-  // Helper function to safely format dates
-  const formatMatchDate = (date: Date | undefined | string) => {
-    if (!date) return "Data não definida";
-    
-    try {
-      // Handle string dates from Firestore
-      let dateObj: Date;
-      if (typeof date === 'string') {
-        // Try to parse ISO string
-        dateObj = parseISO(date);
-      } else {
-        // Already a Date object
-        dateObj = date;
-      }
-      
-      // Check if the date is valid before formatting
-      if (!isValid(dateObj)) {
-        console.log("Invalid date object:", date);
-        return "Data não definida";
-      }
-      
-      return format(dateObj, "dd/MM/yyyy");
-    } catch (error) {
-      console.error("Error formatting date:", error, date);
-      return "Data não definida";
-    }
+  
+  const handleAcesChange = (playerId: string, value: string) => {
+    const numAces = parseInt(value) || 0;
+    setPlayerAces(prev => ({
+      ...prev,
+      [playerId]: numAces
+    }));
   };
-
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <select 
-            className="border rounded-md px-3 py-1.5 text-sm"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="all">Todas as categorias</option>
-            {tournament.categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-          
-          <select 
-            className="border rounded-md px-3 py-1.5 text-sm"
-            value={selectedRound}
-            onChange={(e) => setSelectedRound(e.target.value)}
-          >
-            <option value="all">Todas as rodadas</option>
-            {roundOptions.map(round => (
-              <option key={round} value={round}>{formatRoundName(round)}</option>
-            ))}
-          </select>
-        </div>
+        <h3 className="text-lg font-medium">Partidas do Campeonato</h3>
         
-        <Dialog>
+        <Dialog open={openCreateDialog} onOpenChange={setOpenCreateDialog}>
           <DialogTrigger asChild>
-            <Button size="sm" className="flex items-center gap-1">
-              <PlusCircleIcon className="h-4 w-4" />
-              Nova Partida
+            <Button>
+              <PlusCircleIcon className="mr-1" />
+              Criar Nova Partida
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Criar Nova Partida</DialogTitle>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Categoria</label>
-                  <select 
-                    className="w-full border rounded-md px-3 py-1.5 text-sm"
-                    value={matchCategory}
-                    onChange={(e) => setMatchCategory(e.target.value)}
-                  >
-                    <option value="">Selecione...</option>
-                    {tournament.categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
+            
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria*</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tournament.categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
                     ))}
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Rodada</label>
-                  <select 
-                    className="w-full border rounded-md px-3 py-1.5 text-sm"
-                    value={matchRound}
-                    onChange={(e) => setMatchRound(e.target.value)}
-                  >
-                    <option value="">Selecione...</option>
-                    {roundOptions.map(round => (
-                      <option key={round} value={round}>{formatRoundName(round)}</option>
-                    ))}
-                  </select>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">Data da Partida</label>
+                <Label htmlFor="round">Fase*</Label>
+                <Select value={selectedRound} onValueChange={setSelectedRound}>
+                  <SelectTrigger id="round">
+                    <SelectValue placeholder="Selecione a fase" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rounds.map((round) => (
+                      <SelectItem key={round} value={round}>
+                        {round === "round-1" ? "1ª Fase" :
+                         round === "round-2" ? "2ª Fase" :
+                         round === "quarter-final" ? "Quartas de Final" :
+                         round === "semi-final" ? "Semifinal" :
+                         "Final"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="team1">Time 1*</Label>
+                <Select value={selectedTeam1[0] || ''} onValueChange={(value) => setSelectedTeam1([value])}>
+                  <SelectTrigger id="team1">
+                    <SelectValue placeholder="Selecione o jogador/time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {participants && participants.map((player) => (
+                      <SelectItem key={player.uid} value={player.uid}>
+                        {player.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="team2">Time 2*</Label>
+                <Select value={selectedTeam2[0] || ''} onValueChange={(value) => setSelectedTeam2([value])}>
+                  <SelectTrigger id="team2">
+                    <SelectValue placeholder="Selecione o jogador/time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {participants && participants.map((player) => (
+                      <SelectItem key={player.uid} value={player.uid} disabled={selectedTeam1.includes(player.uid)}>
+                        {player.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="date">Data da Partida*</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -317,7 +274,12 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                         !matchDate && "text-muted-foreground"
                       )}
                     >
-                      {matchDate ? format(matchDate, "PPP") : "Selecione uma data"}
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {matchDate ? (
+                        isValid(matchDate) ? format(matchDate, "PPP") : "Data inválida"
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -330,212 +292,294 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                   </PopoverContent>
                 </Popover>
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Time 1</label>
-                <select 
-                  className="w-full border rounded-md px-3 py-1.5 text-sm"
-                  value={team1Players[0] || ""}
-                  onChange={(e) => setTeam1Players([e.target.value])}
-                >
-                  <option value="">Selecione o jogador...</option>
-                  {tournament.participants.map(playerId => (
-                    <option key={playerId} value={playerId}>
-                      {getPlayerName(playerId)}
-                    </option>
-                  ))}
-                </select>
-                {matchCategory === "duplas" && (
-                  <select 
-                    className="w-full border rounded-md px-3 py-1.5 text-sm mt-2"
-                    value={team1Players[1] || ""}
-                    onChange={(e) => {
-                      const player1 = team1Players[0] || "";
-                      setTeam1Players([player1, e.target.value]);
-                    }}
-                  >
-                    <option value="">Selecione o parceiro...</option>
-                    {tournament.participants
-                      .filter(id => id !== team1Players[0])
-                      .map(playerId => (
-                        <option key={playerId} value={playerId}>
-                          {getPlayerName(playerId)}
-                        </option>
-                      ))
-                    }
-                  </select>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Time 2</label>
-                <select 
-                  className="w-full border rounded-md px-3 py-1.5 text-sm"
-                  value={team2Players[0] || ""}
-                  onChange={(e) => setTeam2Players([e.target.value])}
-                >
-                  <option value="">Selecione o jogador...</option>
-                  {tournament.participants
-                    .filter(id => !team1Players.includes(id))
-                    .map(playerId => (
-                      <option key={playerId} value={playerId}>
-                        {getPlayerName(playerId)}
-                      </option>
-                    ))
-                  }
-                </select>
-                {matchCategory === "duplas" && (
-                  <select 
-                    className="w-full border rounded-md px-3 py-1.5 text-sm mt-2"
-                    value={team2Players[1] || ""}
-                    onChange={(e) => {
-                      const player1 = team2Players[0] || "";
-                      setTeam2Players([player1, e.target.value]);
-                    }}
-                  >
-                    <option value="">Selecione o parceiro...</option>
-                    {tournament.participants
-                      .filter(id => !team1Players.includes(id) && id !== team2Players[0])
-                      .map(playerId => (
-                        <option key={playerId} value={playerId}>
-                          {getPlayerName(playerId)}
-                        </option>
-                      ))
-                    }
-                  </select>
-                )}
-              </div>
-              
-              <Button 
-                className="w-full" 
-                onClick={handleCreateMatch}
-                disabled={isCreatingMatch}
-              >
-                {isCreatingMatch ? "Criando..." : "Criar Partida"}
-              </Button>
             </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenCreateDialog(false)}>Cancelar</Button>
+              <Button onClick={handleCreateMatch}>Criar Partida</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
       
-      {isLoadingPlayers ? (
-        <div className="text-center py-10">
-          <ClockIcon className="animate-spin h-8 w-8 mx-auto mb-4" />
-          <p>Carregando dados...</p>
-        </div>
-      ) : filteredMatches.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Rodada</TableHead>
-              <TableHead>Time 1</TableHead>
-              <TableHead>Time 2</TableHead>
-              <TableHead>Placar</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredMatches.map((match) => (
-              <TableRow key={match.id}>
-                <TableCell>{formatMatchDate(match.date)}</TableCell>
-                <TableCell>{match.category}</TableCell>
-                <TableCell>{formatRoundName(match.round)}</TableCell>
-                <TableCell>{getTeamDisplay(match.team1)}</TableCell>
-                <TableCell>{getTeamDisplay(match.team2)}</TableCell>
-                <TableCell>{match.score || "-"}</TableCell>
-                <TableCell>
-                  {match.status === 'completed' ? (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                      <CheckCircleIcon className="mr-1 h-3 w-3" />
-                      Concluída
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                      <ClockIcon className="mr-1 h-3 w-3" />
-                      Agendada
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {match.status !== 'completed' && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">Todas</TabsTrigger>
+          <TabsTrigger value="scheduled">Agendadas</TabsTrigger>
+          <TabsTrigger value="completed">Finalizadas</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="space-y-4">
+          {tournament.matches && tournament.matches.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Fase</TableHead>
+                  <TableHead>Times</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Placar</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tournament.matches.map((match) => (
+                  <TableRow key={match.id}>
+                    <TableCell>{match.category}</TableCell>
+                    <TableCell>
+                      {match.round === "round-1" ? "1ª Fase" :
+                       match.round === "round-2" ? "2ª Fase" :
+                       match.round === "quarter-final" ? "Quartas de Final" :
+                       match.round === "semi-final" ? "Semifinal" :
+                       "Final"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
+                        <span>vs</span>
+                        <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {match.date && isValid(new Date(match.date)) 
+                        ? format(new Date(match.date), "dd/MM/yyyy") 
+                        : "Data inválida"}
+                    </TableCell>
+                    <TableCell>
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        match.status === "scheduled" ? "bg-yellow-100 text-yellow-800" :
+                        match.status === "completed" ? "bg-green-100 text-green-800" :
+                        "bg-red-100 text-red-800"
+                      )}>
+                        {match.status === "scheduled" ? "Agendada" :
+                         match.status === "completed" ? "Finalizada" :
+                         "Cancelada"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{match.score || "-"}</TableCell>
+                    <TableCell>
+                      {match.status !== "completed" && (
+                        <Button
+                          variant="outline"
                           size="sm"
-                          onClick={() => openResultDialog(match)}
+                          onClick={() => handleSelectMatch(match)}
                         >
-                          <TrophyIcon className="h-4 w-4 mr-1" />
-                          Resultado
+                          Registrar Resultado
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Registrar Resultado</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4 space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                              {getTeamDisplay(match.team1)} vs {getTeamDisplay(match.team2)}
-                            </label>
-                            <Input
-                              placeholder="ex: 6-4, 7-5"
-                              value={matchScore}
-                              onChange={(e) => setMatchScore(e.target.value)}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Vencedor</label>
-                            <div className="flex flex-col space-y-2">
-                              <label className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  checked={matchWinner.toString() === match.team1.toString()}
-                                  onChange={() => setMatchWinner(match.team1)}
-                                  className="rounded border-gray-300"
-                                />
-                                <span>{getTeamDisplay(match.team1)}</span>
-                              </label>
-                              <label className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  checked={matchWinner.toString() === match.team2.toString()}
-                                  onChange={() => setMatchWinner(match.team2)}
-                                  className="rounded border-gray-300"
-                                />
-                                <span>{getTeamDisplay(match.team2)}</span>
-                              </label>
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            className="w-full" 
-                            onClick={handleUpdateMatchResult}
-                          >
-                            Salvar Resultado
-                          </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-muted-foreground">Nenhuma partida encontrada</p>
+                <p className="text-sm text-muted-foreground mt-1">Crie uma nova partida para começar</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="scheduled" className="space-y-4">
+          {tournament.matches && tournament.matches.filter(m => m.status === "scheduled").length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Fase</TableHead>
+                  <TableHead>Times</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tournament.matches
+                  .filter(m => m.status === "scheduled")
+                  .map((match) => (
+                    <TableRow key={match.id}>
+                      <TableCell>{match.category}</TableCell>
+                      <TableCell>
+                        {match.round === "round-1" ? "1ª Fase" :
+                         match.round === "round-2" ? "2ª Fase" :
+                         match.round === "quarter-final" ? "Quartas de Final" :
+                         match.round === "semi-final" ? "Semifinal" :
+                         "Final"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
+                          <span>vs</span>
+                          <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="text-center py-10 border rounded-lg bg-gray-50">
-          <PlusCircleIcon className="h-8 w-8 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-500">Nenhuma partida encontrada</p>
-          <p className="text-gray-400 text-sm">
-            Crie partidas para este campeonato.
-          </p>
-        </div>
-      )}
+                      </TableCell>
+                      <TableCell>
+                        {match.date && isValid(new Date(match.date)) 
+                          ? format(new Date(match.date), "dd/MM/yyyy") 
+                          : "Data inválida"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSelectMatch(match)}
+                        >
+                          Registrar Resultado
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-muted-foreground">Nenhuma partida agendada</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed" className="space-y-4">
+          {tournament.matches && tournament.matches.filter(m => m.status === "completed").length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Fase</TableHead>
+                  <TableHead>Times</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Placar</TableHead>
+                  <TableHead>Vencedor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tournament.matches
+                  .filter(m => m.status === "completed")
+                  .map((match) => (
+                    <TableRow key={match.id}>
+                      <TableCell>{match.category}</TableCell>
+                      <TableCell>
+                        {match.round === "round-1" ? "1ª Fase" :
+                         match.round === "round-2" ? "2ª Fase" :
+                         match.round === "quarter-final" ? "Quartas de Final" :
+                         match.round === "semi-final" ? "Semifinal" :
+                         "Final"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
+                          <span>vs</span>
+                          <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {match.date && isValid(new Date(match.date)) 
+                          ? format(new Date(match.date), "dd/MM/yyyy") 
+                          : "Data inválida"}
+                      </TableCell>
+                      <TableCell>{match.score}</TableCell>
+                      <TableCell>
+                        {match.winner && match.winner.map(id => getPlayerName(id)).join(", ")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-muted-foreground">Nenhuma partida finalizada</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      <Dialog open={openResultDialog} onOpenChange={setOpenResultDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Registrar Resultado da Partida</DialogTitle>
+          </DialogHeader>
+          
+          {selectedMatch && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Partida</Label>
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="font-medium">{getPlayerName(selectedMatch.team1[0])}</div>
+                  <div className="text-muted-foreground">vs</div>
+                  <div className="font-medium">{getPlayerName(selectedMatch.team2[0])}</div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="score">Placar* (ex: 6-4, 7-5)</Label>
+                <Input
+                  id="score"
+                  value={matchScore}
+                  onChange={(e) => setMatchScore(e.target.value)}
+                  placeholder="6-4, 7-5"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="winner">Vencedor*</Label>
+                <Select value={selectedWinner || ''} onValueChange={(value: "team1" | "team2") => setSelectedWinner(value)}>
+                  <SelectTrigger id="winner">
+                    <SelectValue placeholder="Selecione o vencedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="team1">
+                      {selectedMatch.team1.map(id => getPlayerName(id)).join(", ")}
+                    </SelectItem>
+                    <SelectItem value="team2">
+                      {selectedMatch.team2.map(id => getPlayerName(id)).join(", ")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-3">
+                <Label>Aces por Jogador</Label>
+                <div className="grid gap-3">
+                  {[...selectedMatch.team1, ...selectedMatch.team2].map(playerId => (
+                    <div key={playerId} className="flex justify-between items-center">
+                      <span>{getPlayerName(playerId)}</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        className="w-20"
+                        value={playerAces[playerId] || 0}
+                        onChange={(e) => handleAcesChange(playerId, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setOpenResultDialog(false)}
+            >
+              <XCircleIcon className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateMatchResult}
+            >
+              <CheckCircleIcon className="h-4 w-4 mr-2" />
+              Salvar Resultado
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

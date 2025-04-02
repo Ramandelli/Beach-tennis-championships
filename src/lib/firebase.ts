@@ -353,9 +353,12 @@ export const createMatch = async (matchData: Omit<Match, 'id'>) => {
   }
 };
 
-export const updateMatchResult = async (matchId: string, score: string, winner: string[]) => {
+export const updateMatchResult = async (matchId: string, score: string, winner: string[], aces?: Record<string, number>) => {
   try {
     console.log(`Updating match ${matchId} with score: ${score} and winner: ${winner.join(', ')}`);
+    if (aces) {
+      console.log(`Recording aces:`, aces);
+    }
     
     const matchRef = doc(db, "matches", matchId);
     const matchDoc = await getDoc(matchRef);
@@ -404,43 +407,42 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
     const winnerIds = winner;
     const loserIds = match.team1.includes(winnerIds[0]) ? match.team2 : match.team1;
     
-    // Update winners' stats
-    for (const playerId of winnerIds) {
+    // Get all players involved in the match
+    const allPlayerIds = [...match.team1, ...match.team2];
+    
+    // Update each player's stats
+    for (const playerId of allPlayerIds) {
       const playerRef = doc(db, "players", playerId);
       const playerDoc = await getDoc(playerRef);
       
       if (playerDoc.exists()) {
         const player = playerDoc.data() as PlayerProfile;
+        const isWinner = winnerIds.includes(playerId);
+        
+        // Base stat updates
         const matches = player.stats.matches + 1;
-        const wins = player.stats.wins + 1;
+        const wins = isWinner ? player.stats.wins + 1 : player.stats.wins;
+        const losses = isWinner ? player.stats.losses : player.stats.losses + 1;
         const winRate = (wins / matches) * 100;
         
-        await updateDoc(playerRef, { 
+        // Update object to send to Firestore
+        const updateData: Record<string, any> = { 
           "stats.matches": matches,
           "stats.wins": wins,
-          "stats.winRate": winRate
-        });
-        console.log(`Updated winner stats for player ${playerId}`);
-      }
-    }
-    
-    // Update losers' stats
-    for (const playerId of loserIds) {
-      const playerRef = doc(db, "players", playerId);
-      const playerDoc = await getDoc(playerRef);
-      
-      if (playerDoc.exists()) {
-        const player = playerDoc.data() as PlayerProfile;
-        const matches = player.stats.matches + 1;
-        const losses = player.stats.losses + 1;
-        const winRate = (player.stats.wins / matches) * 100;
-        
-        await updateDoc(playerRef, { 
-          "stats.matches": matches,
           "stats.losses": losses,
           "stats.winRate": winRate
-        });
-        console.log(`Updated loser stats for player ${playerId}`);
+        };
+        
+        // Add aces if provided
+        if (aces && aces[playerId]) {
+          const currentAces = player.stats.aces || 0;
+          const newAces = currentAces + aces[playerId];
+          updateData["stats.aces"] = newAces;
+          console.log(`Updating aces for player ${playerId}: ${currentAces} + ${aces[playerId]} = ${newAces}`);
+        }
+        
+        await updateDoc(playerRef, updateData);
+        console.log(`Updated stats for player ${playerId}`);
       }
     }
     
