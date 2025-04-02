@@ -13,9 +13,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Tournaments from "./pages/Tournaments";
+import TournamentDetails from "./pages/TournamentDetails"; // Import the new TournamentDetails page
 import MyTournaments from "./pages/MyTournaments";
 import Ranking from "./pages/Ranking";
-import Admin from "./pages/Admin"; // Import the new Admin page
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 // Import framer-motion
@@ -39,6 +40,7 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/tournaments" element={<Tournaments />} />
+                  <Route path="/tournaments/:id" element={<TournamentDetails />} /> {/* Add this new route */}
                   <Route 
                     path="/my-tournaments" 
                     element={
@@ -56,7 +58,6 @@ const App = () => (
                       </ProtectedRoute>
                     } 
                   />
-                  {/* Add Admin route with requireAdmin=true */}
                   <Route 
                     path="/admin" 
                     element={

@@ -442,4 +442,39 @@ export const getPlayerRanking = async (limit = 20) => {
   }
 };
 
+export const getTournamentById = async (tournamentId: string): Promise<Tournament | null> => {
+  try {
+    const tournamentDoc = await getDoc(doc(db, "tournaments", tournamentId));
+    
+    if (tournamentDoc.exists()) {
+      const tournamentData = tournamentDoc.data() as Omit<Tournament, "id">;
+      
+      // Convert Firestore timestamps to JavaScript Date objects
+      const tournament: Tournament = {
+        ...tournamentData,
+        id: tournamentDoc.id,
+        startDate: tournamentData.startDate instanceof Timestamp 
+          ? tournamentData.startDate.toDate() 
+          : new Date(tournamentData.startDate),
+        endDate: tournamentData.endDate instanceof Timestamp 
+          ? tournamentData.endDate.toDate() 
+          : new Date(tournamentData.endDate),
+        matches: tournamentData.matches?.map(match => ({
+          ...match,
+          date: match.date instanceof Timestamp 
+            ? match.date.toDate() 
+            : match.date ? new Date(match.date) : undefined
+        })) || []
+      };
+      
+      return tournament;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error getting tournament by ID:", error);
+    throw error;
+  }
+};
+
 export { auth, db, storage, doc, updateDoc, collection, query, where, getDocs };
