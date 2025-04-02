@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Tournaments from "./pages/Tournaments";
 import MyTournaments from "./pages/MyTournaments";
 import Ranking from "./pages/Ranking";
+import Admin from "./pages/Admin"; // Import the new Admin page
 import NotFound from "./pages/NotFound";
 
 // Import framer-motion
@@ -52,6 +53,15 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <Profile />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  {/* Add Admin route with requireAdmin=true */}
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute requireAdmin>
+                        <Admin />
                       </ProtectedRoute>
                     } 
                   />

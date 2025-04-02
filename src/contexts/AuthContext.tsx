@@ -47,7 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 matches: 0,
                 wins: 0,
                 losses: 0,
-                winRate: 0
+                winRate: 0,
+                tournaments: 0,
+                podiums: 0,
+                aces: 0,
+                winningStreak: 0,
+                consistencyScore: 0
               }
             };
             setPlayerProfile(defaultProfile);
