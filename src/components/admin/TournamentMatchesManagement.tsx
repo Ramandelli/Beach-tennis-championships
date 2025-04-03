@@ -15,7 +15,7 @@ import { PlusCircleIcon, CalendarIcon, XCircleIcon, CheckCircleIcon } from "luci
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { getPlayerProfile, createMatch, updateMatchResult, Tournament, Match } from "@/lib/firebase";
+import { getPlayerProfile, createMatch, updateMatchResult, Tournament, Match, updateTournamentStatus } from "@/lib/firebase";
 import { useQuery } from "@tanstack/react-query";
 
 interface TournamentMatchesManagementProps {
@@ -117,11 +117,47 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     }
   };
 
+  // Check if final or third-place match already exists
+  const hasExistingMatch = (round: string): boolean => {
+    return tournament.matches.some(match => match.round === round);
+  };
+
+  const checkAndFinalizeTournament = async (match: Match) => {
+    if (match.round !== "final" && match.round !== "third-place") return;
+
+    // Check if both final and third-place matches are completed
+    const finalMatch = tournament.matches.find(m => m.round === "final" && m.status === "completed");
+    const thirdPlaceMatch = tournament.matches.find(m => m.round === "third-place" && m.status === "completed");
+
+    if (finalMatch && thirdPlaceMatch) {
+      console.log("Both final and third-place matches are completed, finalizing tournament...");
+      try {
+        await updateTournamentStatus(tournament.id, "completed");
+        toast({
+          title: "Campeonato finalizado",
+          description: "O campeonato foi finalizado com sucesso.",
+        });
+      } catch (error) {
+        console.error("Error finalizing tournament:", error);
+      }
+    }
+  };
+
   const handleCreateMatch = async () => {
     if (!selectedCategory || !selectedRound || selectedTeam1.length === 0 || selectedTeam2.length === 0 || !matchDate) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if trying to create duplicate final or third-place match
+    if ((selectedRound === "final" || selectedRound === "third-place") && hasExistingMatch(selectedRound)) {
+      toast({
+        title: "Erro",
+        description: `Já existe uma partida de ${getRoundDisplayName(selectedRound)} cadastrada para este campeonato.`,
         variant: "destructive",
       });
       return;
@@ -187,6 +223,15 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       const acesRecord = hasAces ? playerAces : undefined;
       
       await updateMatchResult(selectedMatch.id, matchScore, winnerTeam, acesRecord);
+      
+      // Check if we need to finalize the tournament
+      const updatedMatch = {
+        ...selectedMatch,
+        score: matchScore,
+        winner: winnerTeam,
+        status: 'completed' as const
+      };
+      await checkAndFinalizeTournament(updatedMatch);
       
       toast({
         title: "Sucesso",

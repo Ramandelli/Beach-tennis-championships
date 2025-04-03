@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -79,6 +80,11 @@ export interface Tournament {
   matches: Match[];
   createdBy: string;
   createdAt: Date;
+  podium?: {
+    champion?: string[];     // UIDs of the champion team
+    runnerUp?: string[];     // UIDs of the runner-up team 
+    thirdPlace?: string[];   // UIDs of the third place team
+  };
 }
 
 export interface Match {
@@ -401,10 +407,23 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
         return m;
       });
       
-      await updateDoc(tournamentRef, { 
+      const tournamentUpdateData: Record<string, any> = { 
         matches: updatedMatches
-      });
-      console.log("Tournament document updated with new match data");
+      };
+      
+      // Update the podium information if this is a final or third-place match
+      if (match.round === "final") {
+        const loserTeam = match.team1.includes(winner[0]) ? match.team2 : match.team1;
+        tournamentUpdateData["podium.champion"] = winner;
+        tournamentUpdateData["podium.runnerUp"] = loserTeam;
+        console.log(`Updated podium: Champion - ${winner.join(', ')}, Runner-up - ${loserTeam.join(', ')}`);
+      } else if (match.round === "third-place") {
+        tournamentUpdateData["podium.thirdPlace"] = winner;
+        console.log(`Updated podium: Third place - ${winner.join(', ')}`);
+      }
+      
+      await updateDoc(tournamentRef, tournamentUpdateData);
+      console.log("Tournament document updated with new match data and podium information");
     }
     
     // Update player stats
@@ -496,6 +515,18 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
     return { success: true };
   } catch (error) {
     console.error("Error updating match result:", error);
+    throw error;
+  }
+};
+
+export const updateTournamentStatus = async (tournamentId: string, status: 'upcoming' | 'active' | 'completed') => {
+  try {
+    const tournamentRef = doc(db, "tournaments", tournamentId);
+    await updateDoc(tournamentRef, { status });
+    console.log(`Tournament ${tournamentId} status updated to ${status}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating tournament status:", error);
     throw error;
   }
 };

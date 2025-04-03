@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarClock, MapPin, Users, Trophy, ArrowLeft } from "lucide-react";
+import { CalendarClock, MapPin, Users, Trophy, ArrowLeft, Award } from "lucide-react";
 import { format, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -149,6 +149,66 @@ const TournamentDetails = () => {
     return teamIds.map(id => getPlayerName(id)).join(' & ');
   };
 
+  // Helper to render the podium if tournament is completed
+  const renderPodium = () => {
+    if (!tournament || tournament.status !== 'completed' || !tournament.podium) {
+      return null;
+    }
+
+    return (
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Trophy className="mr-2 h-5 w-5 text-yellow-500" />
+            Pódio
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+            {/* Champion */}
+            {tournament.podium.champion && (
+              <div className="flex flex-col items-center text-center">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-full mb-2">
+                  <Trophy className="h-10 w-10 text-yellow-500" />
+                </div>
+                <span className="font-bold text-lg">Campeão</span>
+                <span className="text-base">
+                  {tournament.podium.champion.map(id => getPlayerName(id)).join(' & ')}
+                </span>
+              </div>
+            )}
+
+            {/* Runner-up */}
+            {tournament.podium.runnerUp && (
+              <div className="flex flex-col items-center text-center">
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-full mb-2">
+                  <Award className="h-10 w-10 text-gray-500" />
+                </div>
+                <span className="font-bold text-lg">Vice-campeão</span>
+                <span className="text-base">
+                  {tournament.podium.runnerUp.map(id => getPlayerName(id)).join(' & ')}
+                </span>
+              </div>
+            )}
+
+            {/* Third Place */}
+            {tournament.podium.thirdPlace && (
+              <div className="flex flex-col items-center text-center">
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-full mb-2">
+                  <Award className="h-10 w-10 text-orange-500" />
+                </div>
+                <span className="font-bold text-lg">3º Lugar</span>
+                <span className="text-base">
+                  {tournament.podium.thirdPlace.map(id => getPlayerName(id)).join(' & ')}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
@@ -249,6 +309,9 @@ const TournamentDetails = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Render podium for completed tournaments */}
+      {renderPodium()}
       
       <Tabs defaultValue="matches">
         <TabsList className="mb-6">
