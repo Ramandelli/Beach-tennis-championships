@@ -329,10 +329,14 @@ export const createMatch = async (matchData: Omit<Match, 'id'>) => {
     const matchesRef = collection(db, "matches");
     const newMatchRef = doc(matchesRef);
     
+    // Ensure date is a proper Date object before storing
     const match: Match = {
       ...matchData,
       id: newMatchRef.id
     };
+    
+    console.log("Creating match with data:", match);
+    console.log("Date type:", match.date instanceof Date ? "Date object" : typeof match.date);
     
     await setDoc(newMatchRef, match);
     
@@ -540,9 +544,14 @@ export const getTournamentById = async (tournamentId: string): Promise<Tournamen
           ...match,
           date: match.date instanceof Timestamp 
             ? match.date.toDate() 
-            : match.date ? new Date(match.date) : undefined
+            : match.date ? new Date(match.date) : new Date()
         })) || []
       };
+      
+      console.log("Retrieved tournament with matches:", tournament.matches.length);
+      tournament.matches.forEach((match, index) => {
+        console.log(`Match ${index} date:`, match.date, typeof match.date);
+      });
       
       return tournament;
     }

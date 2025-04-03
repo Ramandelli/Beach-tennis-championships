@@ -58,25 +58,41 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     if (!date) return "Data não definida";
     
     try {
-      // Handle string dates from Firestore
+      // Handle different date formats
       let dateObj: Date;
-      if (typeof date === 'string') {
+      
+      // Check if it's already a Date object
+      if (date instanceof Date) {
+        dateObj = date;
+      } 
+      // Handle string date representations
+      else if (typeof date === 'string') {
         // Try to parse ISO string
         dateObj = parseISO(date);
         
-        // Check if it's a Firestore timestamp object
+        // Check if it's a Firestore timestamp object in string format
         if (date.toString().includes('seconds') && date.toString().includes('nanoseconds')) {
-          const timestampObj = JSON.parse(date.toString());
-          dateObj = new Date(timestampObj.seconds * 1000);
+          try {
+            const timestampObj = JSON.parse(date.toString());
+            dateObj = new Date(timestampObj.seconds * 1000);
+          } catch (parseError) {
+            console.error("Error parsing timestamp:", parseError);
+          }
         }
-      } else {
-        // Already a Date object
-        dateObj = date;
+      } 
+      // Handle Firestore timestamp objects directly
+      else if (typeof date === 'object' && date !== null && 'seconds' in date && 'nanoseconds' in date) {
+        const timestampObj = date as { seconds: number; nanoseconds: number };
+        dateObj = new Date(timestampObj.seconds * 1000);
+      }
+      // Fallback: try to convert to Date
+      else {
+        dateObj = new Date(date as any);
       }
       
       // Check if the date is valid before formatting
       if (!isValid(dateObj)) {
-        console.log("Invalid date object:", date);
+        console.error("Invalid date object:", date);
         return "Data não definida";
       }
       
@@ -112,6 +128,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     }
     
     try {
+      // Make sure matchDate is a JavaScript Date object
       const matchData = {
         tournamentId: tournament.id,
         category: selectedCategory,
@@ -122,6 +139,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
         status: 'scheduled' as 'scheduled' | 'completed' | 'cancelled'
       };
       
+      console.log("Creating match with date:", matchDate);
       await createMatch(matchData);
       
       toast({

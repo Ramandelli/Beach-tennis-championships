@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarClock, MapPin, Users, Trophy, ArrowLeft } from "lucide-react";
 import { format, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const TournamentDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,23 +65,45 @@ const TournamentDetails = () => {
     if (!date) return "Data não definida";
     
     try {
-      // Handle string dates from Firestore
+      // Handle different date formats
       let dateObj: Date;
-      if (typeof date === 'string') {
+      
+      // Check if it's already a Date object
+      if (date instanceof Date) {
+        dateObj = date;
+      } 
+      // Handle string date representations
+      else if (typeof date === 'string') {
         // Try to parse ISO string
         dateObj = parseISO(date);
-      } else {
-        // Already a Date object
-        dateObj = date;
+        
+        // Check if it's a Firestore timestamp object in string format
+        if (date.toString().includes('seconds') && date.toString().includes('nanoseconds')) {
+          try {
+            const timestampObj = JSON.parse(date.toString());
+            dateObj = new Date(timestampObj.seconds * 1000);
+          } catch (parseError) {
+            console.error("Error parsing timestamp:", parseError);
+          }
+        }
+      } 
+      // Handle Firestore timestamp objects directly
+      else if (typeof date === 'object' && date !== null && 'seconds' in date && 'nanoseconds' in date) {
+        const timestampObj = date as { seconds: number; nanoseconds: number };
+        dateObj = new Date(timestampObj.seconds * 1000);
+      }
+      // Fallback: try to convert to Date
+      else {
+        dateObj = new Date(date as any);
       }
       
       // Check if the date is valid before formatting
       if (!isValid(dateObj)) {
-        console.log("Invalid date object:", date);
+        console.error("Invalid date object:", date);
         return "Data não definida";
       }
       
-      return format(dateObj, "dd/MM/yyyy");
+      return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
     } catch (error) {
       console.error("Error formatting date:", error, date);
       return "Data não definida";
