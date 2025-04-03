@@ -113,6 +113,19 @@ const TournamentDetails = () => {
     }
   };
 
+  // Helper function to display player names instead of IDs
+  const getPlayerName = (playerId: string) => {
+    if (players[playerId]) {
+      return players[playerId].name;
+    }
+    return "Jogador desconhecido";
+  };
+
+  // Helper function to display team members with names
+  const getTeamDisplayWithNames = (teamIds: string[]) => {
+    return teamIds.map(id => getPlayerName(id)).join(' & ');
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
@@ -245,7 +258,7 @@ const TournamentDetails = () => {
                       <TableRow key={index}>
                         <TableCell>
                           <div className="font-medium">
-                            {getTeamDisplay(match.team1)} vs {getTeamDisplay(match.team2)}
+                            {getTeamDisplayWithNames(match.team1)} vs {getTeamDisplayWithNames(match.team2)}
                           </div>
                         </TableCell>
                         <TableCell>{match.category}</TableCell>
@@ -353,11 +366,6 @@ const TournamentDetails = () => {
       </Tabs>
     </div>
   );
-};
-
-// Helper function to display team members
-const getTeamDisplay = (teamIds: string[]) => {
-  return teamIds.join(' & ');
 };
 
 export default TournamentDetails;
