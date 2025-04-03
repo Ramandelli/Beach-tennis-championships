@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { PlusCircleIcon, CalendarIcon, XCircleIcon, CheckCircleIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -62,6 +63,12 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       if (typeof date === 'string') {
         // Try to parse ISO string
         dateObj = parseISO(date);
+        
+        // Check if it's a Firestore timestamp object
+        if (date.toString().includes('seconds') && date.toString().includes('nanoseconds')) {
+          const timestampObj = JSON.parse(date.toString());
+          dateObj = new Date(timestampObj.seconds * 1000);
+        }
       } else {
         // Already a Date object
         dateObj = date;
@@ -73,7 +80,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
         return "Data não definida";
       }
       
-      return format(dateObj, "dd/MM/yyyy");
+      return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
     } catch (error) {
       console.error("Error formatting date:", error, date);
       return "Data não definida";
@@ -88,6 +95,8 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
       case "semi-final": return "Semifinal";
       case "final": return "Final";
       case "third-place": return "Disputa de 3º Lugar";
+      case "group-stage": return "Fase de Grupos";
+      case "round-of-16": return "Oitavas de Final";
       default: return round;
     }
   };
@@ -324,6 +333,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                       onSelect={setMatchDate}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
+                      locale={ptBR}
                     />
                   </PopoverContent>
                 </Popover>
