@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { format, isValid } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { PlusCircleIcon, CalendarIcon, XCircleIcon, CheckCircleIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -51,8 +51,47 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
     }
   });
   
-  const rounds = ["round-1", "round-2", "quarter-final", "semi-final", "final"];
+  const rounds = ["round-1", "round-2", "quarter-final", "semi-final", "final", "third-place"];
   
+  const formatDateDisplay = (date: Date | string | undefined): string => {
+    if (!date) return "Data não definida";
+    
+    try {
+      // Handle string dates from Firestore
+      let dateObj: Date;
+      if (typeof date === 'string') {
+        // Try to parse ISO string
+        dateObj = parseISO(date);
+      } else {
+        // Already a Date object
+        dateObj = date;
+      }
+      
+      // Check if the date is valid before formatting
+      if (!isValid(dateObj)) {
+        console.log("Invalid date object:", date);
+        return "Data não definida";
+      }
+      
+      return format(dateObj, "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error formatting date:", error, date);
+      return "Data não definida";
+    }
+  };
+  
+  const getRoundDisplayName = (round: string): string => {
+    switch (round) {
+      case "round-1": return "1ª Fase";
+      case "round-2": return "2ª Fase";
+      case "quarter-final": return "Quartas de Final";
+      case "semi-final": return "Semifinal";
+      case "final": return "Final";
+      case "third-place": return "Disputa de 3º Lugar";
+      default: return round;
+    }
+  };
+
   const handleCreateMatch = async () => {
     if (!selectedCategory || !selectedRound || selectedTeam1.length === 0 || selectedTeam2.length === 0 || !matchDate) {
       toast({
@@ -220,11 +259,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                   <SelectContent>
                     {rounds.map((round) => (
                       <SelectItem key={round} value={round}>
-                        {round === "round-1" ? "1ª Fase" :
-                         round === "round-2" ? "2ª Fase" :
-                         round === "quarter-final" ? "Quartas de Final" :
-                         round === "semi-final" ? "Semifinal" :
-                         "Final"}
+                        {getRoundDisplayName(round)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -276,18 +311,19 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {matchDate ? (
-                        isValid(matchDate) ? format(matchDate, "PPP") : "Data inválida"
+                        isValid(matchDate) ? formatDateDisplay(matchDate) : "Data inválida"
                       ) : (
                         <span>Selecione a data</span>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={matchDate}
                       onSelect={setMatchDate}
                       initialFocus
+                      className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
                 </Popover>
@@ -327,13 +363,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                 {tournament.matches.map((match) => (
                   <TableRow key={match.id}>
                     <TableCell>{match.category}</TableCell>
-                    <TableCell>
-                      {match.round === "round-1" ? "1ª Fase" :
-                       match.round === "round-2" ? "2ª Fase" :
-                       match.round === "quarter-final" ? "Quartas de Final" :
-                       match.round === "semi-final" ? "Semifinal" :
-                       "Final"}
-                    </TableCell>
+                    <TableCell>{getRoundDisplayName(match.round)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
@@ -341,11 +371,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                         <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {match.date && isValid(new Date(match.date)) 
-                        ? format(new Date(match.date), "dd/MM/yyyy") 
-                        : "Data inválida"}
-                    </TableCell>
+                    <TableCell>{formatDateDisplay(match.date)}</TableCell>
                     <TableCell>
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-medium",
@@ -402,13 +428,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                   .map((match) => (
                     <TableRow key={match.id}>
                       <TableCell>{match.category}</TableCell>
-                      <TableCell>
-                        {match.round === "round-1" ? "1ª Fase" :
-                         match.round === "round-2" ? "2ª Fase" :
-                         match.round === "quarter-final" ? "Quartas de Final" :
-                         match.round === "semi-final" ? "Semifinal" :
-                         "Final"}
-                      </TableCell>
+                      <TableCell>{getRoundDisplayName(match.round)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
@@ -416,11 +436,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                           <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {match.date && isValid(new Date(match.date)) 
-                          ? format(new Date(match.date), "dd/MM/yyyy") 
-                          : "Data inválida"}
-                      </TableCell>
+                      <TableCell>{formatDateDisplay(match.date)}</TableCell>
                       <TableCell>
                         <Button
                           variant="outline"
@@ -462,13 +478,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                   .map((match) => (
                     <TableRow key={match.id}>
                       <TableCell>{match.category}</TableCell>
-                      <TableCell>
-                        {match.round === "round-1" ? "1ª Fase" :
-                         match.round === "round-2" ? "2ª Fase" :
-                         match.round === "quarter-final" ? "Quartas de Final" :
-                         match.round === "semi-final" ? "Semifinal" :
-                         "Final"}
-                      </TableCell>
+                      <TableCell>{getRoundDisplayName(match.round)}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <span>{match.team1.map(id => getPlayerName(id)).join(", ")}</span>
@@ -476,11 +486,7 @@ const TournamentMatchesManagement = ({ tournament, onRefetch }: TournamentMatche
                           <span>{match.team2.map(id => getPlayerName(id)).join(", ")}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {match.date && isValid(new Date(match.date)) 
-                          ? format(new Date(match.date), "dd/MM/yyyy") 
-                          : "Data inválida"}
-                      </TableCell>
+                      <TableCell>{formatDateDisplay(match.date)}</TableCell>
                       <TableCell>{match.score}</TableCell>
                       <TableCell>
                         {match.winner && match.winner.map(id => getPlayerName(id)).join(", ")}

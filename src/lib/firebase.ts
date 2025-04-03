@@ -410,6 +410,10 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
     // Get all players involved in the match
     const allPlayerIds = [...match.team1, ...match.team2];
     
+    // Check if this is a special round (final or third place)
+    const isFinal = match.round === "final";
+    const isThirdPlace = match.round === "third-place";
+    
     // Update each player's stats
     for (const playerId of allPlayerIds) {
       const playerRef = doc(db, "players", playerId);
@@ -425,12 +429,51 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
         const losses = isWinner ? player.stats.losses : player.stats.losses + 1;
         const winRate = (wins / matches) * 100;
         
+        // Track winning streak
+        let winningStreak = player.stats.winningStreak || 0;
+        const currentStreak = player.stats.currentStreak || 0;
+        
+        // Update current streak
+        let newCurrentStreak = 0;
+        if (isWinner) {
+          newCurrentStreak = currentStreak + 1;
+          // Update highest streak if current streak is higher
+          if (newCurrentStreak > winningStreak) {
+            winningStreak = newCurrentStreak;
+          }
+        }
+        
+        // Podium and tournament tracking for special rounds
+        let podiums = player.stats.podiums || 0;
+        let tournaments = player.stats.tournaments || 0;
+        
+        if (isFinal) {
+          if (isWinner) {
+            // Winner of final gets a podium and a tournament win
+            podiums += 1;
+            tournaments += 1;
+            console.log(`Player ${playerId} won the final and received a podium and tournament`);
+          } else {
+            // Runner-up (second place) gets a podium
+            podiums += 1;
+            console.log(`Player ${playerId} was runner-up and received a podium`);
+          }
+        } else if (isThirdPlace && isWinner) {
+          // Third place winner gets a podium
+          podiums += 1;
+          console.log(`Player ${playerId} won third place and received a podium`);
+        }
+        
         // Update object to send to Firestore
         const updateData: Record<string, any> = { 
           "stats.matches": matches,
           "stats.wins": wins,
           "stats.losses": losses,
-          "stats.winRate": winRate
+          "stats.winRate": winRate,
+          "stats.winningStreak": winningStreak,
+          "stats.currentStreak": newCurrentStreak,
+          "stats.podiums": podiums,
+          "stats.tournaments": tournaments
         };
         
         // Add aces if provided
@@ -442,7 +485,7 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
         }
         
         await updateDoc(playerRef, updateData);
-        console.log(`Updated stats for player ${playerId}`);
+        console.log(`Updated stats for player ${playerId}: wins=${wins}, losses=${losses}, winRate=${winRate.toFixed(1)}%, streak=${newCurrentStreak}`);
       }
     }
     
