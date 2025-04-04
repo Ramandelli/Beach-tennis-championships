@@ -6,35 +6,41 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Trophy, Search, ChevronUp, ChevronDown, Minus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Trophy, Search, ChevronUp, ChevronDown, Minus, RefreshCw } from "lucide-react";
 
 const Ranking = () => {
   const [players, setPlayers] = useState<PlayerProfile[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchRanking = async () => {
-      try {
-        // getPlayerRanking now automatically excludes admins
-        const data = await getPlayerRanking(100);
-        setPlayers(data);
-        setFilteredPlayers(data);
-      } catch (error) {
-        console.error("Error fetching ranking:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar o ranking. Tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRanking = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Fetching player ranking...");
+      const data = await getPlayerRanking(100);
+      console.log(`Fetched ${data.length} players for ranking`);
+      setPlayers(data);
+      setFilteredPlayers(data);
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching ranking:", error);
+      setError("Não foi possível carregar o ranking. Tente novamente mais tarde.");
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar o ranking. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRanking();
   }, [toast]);
 
@@ -65,7 +71,19 @@ const Ranking = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Ranking de Jogadores</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Ranking de Jogadores</h1>
+        {error && (
+          <Button 
+            onClick={fetchRanking} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+        )}
+      </div>
       
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -95,8 +113,21 @@ const Ranking = () => {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12">
-                    <div className="flex justify-center">
-                      <Trophy className="h-12 w-12 animate-pulse text-muted-foreground" />
+                    <div className="flex flex-col items-center">
+                      <Trophy className="h-12 w-12 animate-pulse text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Carregando ranking...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12">
+                    <div className="flex flex-col items-center">
+                      <p className="text-destructive font-medium mb-2">{error}</p>
+                      <Button onClick={fetchRanking} variant="outline" className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4" />
+                        Tentar novamente
+                      </Button>
                     </div>
                   </td>
                 </tr>

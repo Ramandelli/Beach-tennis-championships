@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { 
@@ -63,6 +62,7 @@ export interface PlayerProfile {
     aces?: number;            // Number of aces served
     winningStreak?: number;   // Current or highest winning streak
     consistencyScore?: number; // Percentage score of consistency (can be calculated various ways)
+    currentStreak?: number;    // Current streak of wins
   };
   isAdmin?: boolean;
 }
@@ -125,7 +125,8 @@ export const signUp = async (email: string, password: string, name: string) => {
         podiums: 0,
         aces: 0,
         winningStreak: 0,
-        consistencyScore: 0
+        consistencyScore: 0,
+        currentStreak: 0
       }
     };
     
@@ -535,22 +536,54 @@ export const updateTournamentStatus = async (tournamentId: string, status: 'upco
 // Ranking functions
 export const getPlayerRanking = async (limit = 20) => {
   try {
-    const q = query(
-      collection(db, "players"),
-      where("isAdmin", "!=", true), // Exclude admins from ranking
-      orderBy("isAdmin"), // Required for the inequality filter to work
-      orderBy("stats.winRate", "desc"),
-      firestoreLimit(limit)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const players: PlayerProfile[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      players.push(doc.data() as PlayerProfile);
-    });
-    
-    return players;
+    // First, try the compound query that requires the index
+    try {
+      const q = query(
+        collection(db, "players"),
+        where("isAdmin", "!=", true), // Exclude admins from ranking
+        orderBy("isAdmin"), // Required for the inequality filter to work
+        orderBy("stats.winRate", "desc"),
+        firestoreLimit(limit)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const players: PlayerProfile[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        players.push(doc.data() as PlayerProfile);
+      });
+      
+      return players;
+    } catch (indexError: any) {
+      // If we get a "requires index" error, fall back to a simpler query
+      if (indexError.code === 'failed-precondition') {
+        console.warn("Firebase index not found, using fallback query without admin filtering");
+        
+        // Fallback query without the compound index requirement
+        const fallbackQ = query(
+          collection(db, "players"),
+          orderBy("stats.winRate", "desc"),
+          firestoreLimit(limit * 2) // Get more players to compensate for filtering
+        );
+        
+        const fallbackSnapshot = await getDocs(fallbackQ);
+        const allPlayers: PlayerProfile[] = [];
+        
+        fallbackSnapshot.forEach((doc) => {
+          const playerData = doc.data() as PlayerProfile;
+          // Filter out admins in memory
+          if (!playerData.isAdmin) {
+            allPlayers.push(playerData);
+          }
+        });
+        
+        // Limit to the requested number
+        return allPlayers.slice(0, limit);
+      } else {
+        // For other errors, rethrow
+        throw indexError;
+      }
+    }
   } catch (error) {
     console.error("Error getting player ranking:", error);
     throw error;
