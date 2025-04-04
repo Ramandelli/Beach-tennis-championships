@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,11 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { updatePlayerProfile, uploadAvatar } from "@/lib/firebase";
-import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X, Target, Activity, Star, Clock } from "lucide-react";
+import { Camera, Loader2, UserCog, Award, Trophy, ThumbsUp, ThumbsDown, Edit, Save, X, Target, Activity, Star, Clock, ShieldAlert } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
-  const { user, playerProfile, loading: authLoading } = useAuth();
+  const { user, playerProfile, loading: authLoading, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -142,7 +143,7 @@ const Profile = () => {
     setIsEditing(false);
   };
   
-  console.log("Rendering profile component with playerProfile:", playerProfile);
+  console.log("Rendering profile component with playerProfile:", playerProfile, "isAdmin:", isAdmin);
   
   if (!user) {
     console.log("No user, redirecting to login");
@@ -176,125 +177,170 @@ const Profile = () => {
       </div>
       
       <div className="grid md:grid-cols-3 gap-8">
-        {/* Profile Stats - Always visible */}
-        <div className={isEditing ? "md:col-span-1" : "md:col-span-3 lg:col-span-3 xl:col-span-3"}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Award className="mr-2 h-5 w-5 text-beach-blue" />
-                Estatísticas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center mb-6">
-                <Avatar className="h-32 w-32 mx-auto mb-4">
-                  <AvatarImage src={playerProfile.avatarUrl} alt={playerProfile.name} />
-                  <AvatarFallback className="bg-beach-blue text-white text-4xl">
-                    {playerProfile.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <h2 className="text-xl font-bold">{playerProfile.name}</h2>
-                <p className="text-muted-foreground">{playerProfile.email}</p>
-                {playerProfile.age && (
-                  <p className="text-sm text-muted-foreground">Idade: {playerProfile.age} anos</p>
-                )}
-                {playerProfile.gender && (
-                  <p className="text-sm text-muted-foreground">
-                    Gênero: {
-                      playerProfile.gender === 'masculino' ? 'Masculino' :
-                      playerProfile.gender === 'feminino' ? 'Feminino' :
-                      playerProfile.gender === 'outro' ? 'Outro' : 
-                      'Prefiro não informar'
-                    }
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-4">
-                {/* Win Rate */}
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Taxa de Vitória</span>
-                    <span className="text-sm font-medium">{playerProfile.stats?.winRate?.toFixed(1) || "0.0"}%</span>
-                  </div>
-                  <Progress value={playerProfile.stats?.winRate || 0} className="h-2" />
+        {/* Profile Stats - Only visible for non-admin users */}
+        {!isAdmin ? (
+          <div className={isEditing ? "md:col-span-1" : "md:col-span-3 lg:col-span-3 xl:col-span-3"}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Award className="mr-2 h-5 w-5 text-beach-blue" />
+                  Estatísticas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center mb-6">
+                  <Avatar className="h-32 w-32 mx-auto mb-4">
+                    <AvatarImage src={playerProfile.avatarUrl} alt={playerProfile.name} />
+                    <AvatarFallback className="bg-beach-blue text-white text-4xl">
+                      {playerProfile.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="text-xl font-bold">{playerProfile.name}</h2>
+                  <p className="text-muted-foreground">{playerProfile.email}</p>
+                  {playerProfile.age && (
+                    <p className="text-sm text-muted-foreground">Idade: {playerProfile.age} anos</p>
+                  )}
+                  {playerProfile.gender && (
+                    <p className="text-sm text-muted-foreground">
+                      Gênero: {
+                        playerProfile.gender === 'masculino' ? 'Masculino' :
+                        playerProfile.gender === 'feminino' ? 'Feminino' :
+                        playerProfile.gender === 'outro' ? 'Outro' : 
+                        'Prefiro não informar'
+                      }
+                    </p>
+                  )}
                 </div>
                 
-                {/* New Metric: Consistency Score */}
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">Consistência</span>
-                    <span className="text-sm font-medium">{playerProfile.stats?.consistencyScore?.toFixed(1) || "0.0"}%</span>
-                  </div>
-                  <Progress value={playerProfile.stats?.consistencyScore || 0} className="h-2" />
-                </div>
-                
-                {/* Basic Stats Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-green-600">
-                      <ThumbsUp className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.wins || 0}</span>
+                <div className="space-y-4">
+                  {/* Win Rate */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Taxa de Vitória</span>
+                      <span className="text-sm font-medium">{playerProfile.stats?.winRate?.toFixed(1) || "0.0"}%</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Vitórias</p>
+                    <Progress value={playerProfile.stats?.winRate || 0} className="h-2" />
                   </div>
                   
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-red-600">
-                      <ThumbsDown className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.losses || 0}</span>
+                  {/* New Metric: Consistency Score */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium">Consistência</span>
+                      <span className="text-sm font-medium">{playerProfile.stats?.consistencyScore?.toFixed(1) || "0.0"}%</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Derrotas</p>
-                  </div>
-                </div>
-                
-                {/* Additional Metrics */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-amber-500">
-                      <Trophy className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.tournaments || 0}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Campeonatos</p>
+                    <Progress value={playerProfile.stats?.consistencyScore || 0} className="h-2" />
                   </div>
                   
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-purple-600">
-                      <Star className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.podiums || 0}</span>
+                  {/* Basic Stats Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-green-600">
+                        <ThumbsUp className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.wins || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Vitórias</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Pódios</p>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-red-600">
+                        <ThumbsDown className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.losses || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Derrotas</p>
+                    </div>
                   </div>
                   
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-blue-600">
-                      <Target className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.aces || 0}</span>
+                  {/* Additional Metrics */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-amber-500">
+                        <Trophy className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.tournaments || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Campeonatos</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Aces</p>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-purple-600">
+                        <Star className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.podiums || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Pódios</p>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-blue-600">
+                        <Target className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.aces || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Aces</p>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <div className="flex items-center justify-center mb-1 text-orange-500">
+                        <Activity className="h-5 w-5 mr-1" />
+                        <span className="font-bold text-lg">{playerProfile.stats?.winningStreak || 0}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Sequência</p>
+                    </div>
                   </div>
                   
+                  {/* Total Matches at the bottom */}
                   <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <div className="flex items-center justify-center mb-1 text-orange-500">
-                      <Activity className="h-5 w-5 mr-1" />
-                      <span className="font-bold text-lg">{playerProfile.stats?.winningStreak || 0}</span>
+                    <div className="flex items-center justify-center mb-1">
+                      <Clock className="h-5 w-5 mr-1 text-beach-blue" />
+                      <span className="font-bold text-lg">{playerProfile.stats?.matches || 0}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Sequência</p>
+                    <p className="text-sm text-muted-foreground">Total de Partidas</p>
                   </div>
                 </div>
-                
-                {/* Total Matches at the bottom */}
-                <div className="bg-gray-50 p-3 rounded-lg text-center">
-                  <div className="flex items-center justify-center mb-1">
-                    <Clock className="h-5 w-5 mr-1 text-beach-blue" />
-                    <span className="font-bold text-lg">{playerProfile.stats?.matches || 0}</span>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          // Admin profile card without statistics
+          <div className={isEditing ? "md:col-span-1" : "md:col-span-3 lg:col-span-3 xl:col-span-3"}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ShieldAlert className="mr-2 h-5 w-5 text-amber-500" />
+                  Perfil Administrador
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center mb-6">
+                  <Avatar className="h-32 w-32 mx-auto mb-4">
+                    <AvatarImage src={playerProfile.avatarUrl} alt={playerProfile.name} />
+                    <AvatarFallback className="bg-beach-blue text-white text-4xl">
+                      {playerProfile.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="text-xl font-bold">{playerProfile.name}</h2>
+                  <p className="text-muted-foreground">{playerProfile.email}</p>
+                  {playerProfile.age && (
+                    <p className="text-sm text-muted-foreground">Idade: {playerProfile.age} anos</p>
+                  )}
+                  {playerProfile.gender && (
+                    <p className="text-sm text-muted-foreground">
+                      Gênero: {
+                        playerProfile.gender === 'masculino' ? 'Masculino' :
+                        playerProfile.gender === 'feminino' ? 'Feminino' :
+                        playerProfile.gender === 'outro' ? 'Outro' : 
+                        'Prefiro não informar'
+                      }
+                    </p>
+                  )}
+                  <div className="mt-4">
+                    <p className="text-amber-500 font-medium flex items-center justify-center">
+                      <ShieldAlert className="mr-2 h-5 w-5" />
+                      Administrador do Sistema
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">Total de Partidas</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {/* Edit Profile - Only visible when editing */}
         {isEditing && (
