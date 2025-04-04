@@ -53,7 +53,7 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto text-gray-700"
           >
-            Participe dos melhores campeonatos de Beach Tennis do Brasil!
+            Participe dos melhores campeonatos de Beach Tennis de Cianorte!
           </motion.p>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
