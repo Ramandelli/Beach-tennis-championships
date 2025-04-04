@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const defaultProfile: PlayerProfile = {
               uid: user.uid,
               email: user.email || "",
-              name: user.displayName || "Jogador",
+              name: user.displayName || "Usuário",
               createdAt: new Date(),
               isAdmin: false, // Set default admin status to false
               stats: {

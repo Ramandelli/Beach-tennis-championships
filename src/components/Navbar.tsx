@@ -21,6 +21,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Get display name, prioritizing playerProfile.name, falling back to user.displayName
+  const displayName = playerProfile?.name || user?.displayName || "Usuário";
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -65,9 +68,9 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={playerProfile?.avatarUrl} alt={playerProfile?.name || "Usuário"} />
+                      <AvatarImage src={playerProfile?.avatarUrl} alt={displayName} />
                       <AvatarFallback className="bg-beach-blue text-white">
-                        {playerProfile?.name?.substring(0, 2).toUpperCase() || "U"}
+                        {displayName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -75,7 +78,7 @@ const Navbar = () => {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{playerProfile?.name}</p>
+                      <p className="font-medium">{displayName}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>

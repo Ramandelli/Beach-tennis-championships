@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { signUp, updatePlayerProfile } from "@/lib/firebase";
+import { signUp } from "@/lib/firebase";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -45,25 +44,19 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // isAdmin is automatically set to false in the signUp function
-      const { user, playerProfile } = await signUp(email, password, name);
-      
-      // Update additional profile data
-      if (age || gender) {
-        const data: { age?: number; gender?: string } = {};
-        if (age) data.age = parseInt(age);
-        if (gender) data.gender = gender;
-        
-        // Update player profile with additional data
-        await updatePlayerProfile(user.uid, data);
-      }
+      // Create new user without automatically signing in
+      await signUp(email, password, name, {
+        age: age ? parseInt(age) : undefined,
+        gender: gender || undefined
+      });
       
       toast({
         title: "Cadastro realizado com sucesso",
-        description: "Sua conta foi criada. Bem-vindo(a)!",
+        description: "Sua conta foi criada. Faça login para continuar.",
       });
       
-      navigate("/");
+      // Redirect to login page instead of home page
+      navigate("/login");
     } catch (error: any) {
       let message = "Ocorreu um erro ao criar sua conta.";
       

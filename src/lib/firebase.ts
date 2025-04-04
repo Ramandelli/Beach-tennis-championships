@@ -101,7 +101,15 @@ export interface Match {
 }
 
 // Auth functions
-export const signUp = async (email: string, password: string, name: string) => {
+export const signUp = async (
+  email: string, 
+  password: string, 
+  name: string, 
+  additionalData?: { 
+    age?: number; 
+    gender?: string;
+  }
+) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -129,8 +137,17 @@ export const signUp = async (email: string, password: string, name: string) => {
         currentStreak: 0
       }
     };
+
+    // Add additional data if provided
+    if (additionalData) {
+      if (additionalData.age) playerProfile.age = additionalData.age;
+      if (additionalData.gender) playerProfile.gender = additionalData.gender;
+    }
     
     await setDoc(doc(db, "players", user.uid), playerProfile);
+    
+    // Sign out the user to prevent automatic login
+    await firebaseSignOut(auth);
     
     return { user, playerProfile };
   } catch (error) {
