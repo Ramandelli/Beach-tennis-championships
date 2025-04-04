@@ -1,10 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tournament } from "@/lib/firebase";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -48,6 +48,8 @@ const getStatusText = (status: string) => {
 };
 
 const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: TournamentCardProps) => {
+  const { isAdmin } = useAuth();
+  
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
@@ -89,6 +91,12 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
               Inscrito
+            </Button>
+          ) : isAdmin ? (
+            <Button asChild className="w-full">
+              <Link to={`/tournaments/${tournament.id}`}>
+                Ver detalhes
+              </Link>
             </Button>
           ) : (
             <Button 
