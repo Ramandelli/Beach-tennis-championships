@@ -115,6 +115,7 @@ export const signUp = async (email: string, password: string, name: string) => {
       email: user.email || email,
       name: name,
       createdAt: new Date(),
+      isAdmin: false, // Setting isAdmin to false by default
       stats: {
         matches: 0,
         wins: 0,
@@ -536,6 +537,8 @@ export const getPlayerRanking = async (limit = 20) => {
   try {
     const q = query(
       collection(db, "players"),
+      where("isAdmin", "!=", true), // Exclude admins from ranking
+      orderBy("isAdmin"), // Required for the inequality filter to work
       orderBy("stats.winRate", "desc"),
       firestoreLimit(limit)
     );

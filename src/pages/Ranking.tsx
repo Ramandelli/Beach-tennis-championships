@@ -19,6 +19,7 @@ const Ranking = () => {
   useEffect(() => {
     const fetchRanking = async () => {
       try {
+        // getPlayerRanking now automatically excludes admins
         const data = await getPlayerRanking(100);
         setPlayers(data);
         setFilteredPlayers(data);

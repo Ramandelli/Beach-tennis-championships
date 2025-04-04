@@ -45,6 +45,7 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // isAdmin is automatically set to false in the signUp function
       const { user, playerProfile } = await signUp(email, password, name);
       
       // Update additional profile data

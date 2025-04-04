@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               email: user.email || "",
               name: user.displayName || "Jogador",
               createdAt: new Date(),
+              isAdmin: false, // Set default admin status to false
               stats: {
                 matches: 0,
                 wins: 0,
