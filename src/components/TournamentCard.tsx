@@ -92,7 +92,7 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
         </div>
       </CardContent>
       <CardFooter className="pt-0 flex flex-col gap-2 w-full">
-        {!isAdmin && tournament.status === 'upcoming' && (
+        {Users && !isAdmin && tournament.status === 'upcoming' && (
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
               Inscrito
