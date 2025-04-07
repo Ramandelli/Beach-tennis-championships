@@ -86,14 +86,8 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0">
-        {isAdmin ? (
-          <Button asChild className="w-full">
-            <Link to={`/tournaments/${tournament.id}`}>
-              Ver detalhes
-            </Link>
-          </Button>
-        ) : tournament.status === 'upcoming' ? (
+      <CardFooter className="pt-0 flex flex-col gap-2 w-full">
+        {!isAdmin && tournament.status === 'upcoming' && (
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
               Inscrito
@@ -107,13 +101,12 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
               {loading ? "Processando..." : "Inscrever-se"}
             </Button>
           )
-        ) : (
-          <Button asChild className="w-full">
-            <Link to={`/tournaments/${tournament.id}`}>
-              Ver detalhes
-            </Link>
-          </Button>
         )}
+        <Button asChild className="w-full" variant="outline">
+          <Link to={`/tournaments/${tournament.id}`}>
+            Ver detalhes
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
   );
