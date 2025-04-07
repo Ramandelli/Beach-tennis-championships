@@ -52,9 +52,9 @@ const getStatusText = (status: string) => {
 };
 
 const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: TournamentCardProps) => {
-  const {user, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const canBeManaged = tournament.status === 'upcoming' || tournament.status === 'active';
-  
+
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
