@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tournament } from "@/lib/firebase";
 import { Calendar, MapPin, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle , DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TournamentPlayersManagement from "@/components/admin/TournamentPlayersManagement";
+import TournamentMatchesManagement from "@/components/admin/TournamentMatchesManagement";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TournamentCardProps {
@@ -11,6 +15,7 @@ interface TournamentCardProps {
   isRegistered?: boolean;
   onRegister?: () => void;
   loading?: boolean;
+  onRefetch?: () => void; // Adicionado para uso no gerenciamento
 }
 
 const formatDate = (date: Date) => {
@@ -51,9 +56,10 @@ const getStatusText = (status: string) => {
   }
 };
 
-const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: TournamentCardProps) => {
+const TournamentCard = ({ tournament, isRegistered, onRegister, loading, onRefetch }: TournamentCardProps) => {
   const { user, isAdmin } = useAuth();
   const canBeManaged = tournament.status === 'upcoming' || tournament.status === 'active';
+  const [openDialog, setOpenDialog] = useState(false);
 
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow">
@@ -92,6 +98,7 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
         </div>
       </CardContent>
       <CardFooter className="pt-0 flex flex-col gap-2 w-full">
+        {/* Botão para jogadores (não admin) */}
         {user && !isAdmin && (tournament.status === 'upcoming' || tournament.status === 'active') && (
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
@@ -107,21 +114,44 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
             </Button>
           )
         )}
+
+        {/* Botão de Gerenciar para admin usando Dialog */}
         {isAdmin && canBeManaged && (
-          <Button
-            asChild
-            className="w-full"
-            variant="secondary"
-          >
-            <Link to={`/admin/tournaments/${tournament.id}`}>
-              Gerenciar
-            </Link>
-          </Button>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" className="w-full">
+                Gerenciar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[900px] h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Gerenciar: {tournament.name}</DialogTitle>
+              </DialogHeader>
+              <Tabs defaultValue="players">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="players">Jogadores</TabsTrigger>
+                  <TabsTrigger value="matches">Partidas</TabsTrigger>
+                </TabsList>
+                <TabsContent value="players" className="h-[calc(80vh-10rem)] overflow-y-auto">
+                  {onRefetch && (
+                    <TournamentPlayersManagement tournament={tournament} onRefetch={onRefetch} />
+                  )}
+                </TabsContent>
+                <TabsContent value="matches" className="h-[calc(80vh-10rem)] overflow-y-auto">
+                  {onRefetch && (
+                    <TournamentMatchesManagement tournament={tournament} onRefetch={onRefetch} />
+                  )}
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
         )}
+
+        {/* Botão para ver detalhes (disponível para todos) */}
         <Button asChild className="w-full" variant="outline">
-          <Link to={`/tournaments/${tournament.id}`}>
+          <a href={`/tournaments/${tournament.id}`}>
             Ver detalhes
-          </Link>
+          </a>
         </Button>
       </CardFooter>
     </Card>
