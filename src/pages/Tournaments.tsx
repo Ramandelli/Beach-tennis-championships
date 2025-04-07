@@ -27,7 +27,7 @@ const Tournaments = () => {
       try {
         const tournaments = await getTournaments();
         setAllTournaments(tournaments);
-
+        
         setUpcomingTournaments(tournaments.filter(t => t.status === 'upcoming'));
         setActiveTournaments(tournaments.filter(t => t.status === 'active'));
         setCompletedTournaments(tournaments.filter(t => t.status === 'completed'));
@@ -57,17 +57,17 @@ const Tournaments = () => {
       navigate("/login");
       return;
     }
-
+    
     setRegistering(tournamentId);
-
+    
     try {
       await registerPlayerForTournament(tournamentId, user.uid);
-
+      
       toast({
         title: "Inscrição realizada",
         description: "Você foi inscrito com sucesso neste campeonato!",
       });
-
+      
       const updatedTournaments = allTournaments.map(tournament => {
         if (tournament.id === tournamentId) {
           return {
@@ -77,18 +77,17 @@ const Tournaments = () => {
         }
         return tournament;
       });
-
+      
       setAllTournaments(updatedTournaments);
       setUpcomingTournaments(updatedTournaments.filter(t => t.status === 'upcoming'));
-      // Caso queira atualizar também os torneios ativos, você pode fazer:
-      setActiveTournaments(updatedTournaments.filter(t => t.status === 'active'));
+      // Caso queira atualizar os torneios ativos também, faça-o aqui se necessário.
     } catch (error: any) {
       let message = "Não foi possível concluir sua inscrição.";
-
+      
       if (error.message === "Player already registered for this tournament") {
         message = "Você já está inscrito neste campeonato.";
       }
-
+      
       toast({
         title: "Erro na inscrição",
         description: message,
@@ -101,10 +100,10 @@ const Tournaments = () => {
 
   const filterTournaments = (tournaments: Tournament[]) => {
     if (!searchTerm) return tournaments;
-
+    
     const term = searchTerm.toLowerCase();
     return tournaments.filter(
-      tournament =>
+      tournament => 
         tournament.name.toLowerCase().includes(term) ||
         tournament.description.toLowerCase().includes(term) ||
         tournament.location.toLowerCase().includes(term) ||
@@ -119,7 +118,7 @@ const Tournaments = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Campeonatos</h1>
-
+      
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <Input
@@ -130,7 +129,7 @@ const Tournaments = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-
+      
       <Tabs defaultValue="upcoming">
         <TabsList className="mb-6">
           <TabsTrigger value="upcoming">
@@ -146,7 +145,7 @@ const Tournaments = () => {
             Cancelados ({cancelledTournaments.length})
           </TabsTrigger>
         </TabsList>
-
+        
         <TabsContent value="upcoming">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -168,14 +167,14 @@ const Tournaments = () => {
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Nenhum campeonato encontrado</h3>
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? "Nenhum resultado para sua busca. Tente termos diferentes."
+                {searchTerm 
+                  ? "Nenhum resultado para sua busca. Tente termos diferentes." 
                   : "Não há campeonatos programados no momento. Volte em breve!"}
               </p>
             </div>
           )}
         </TabsContent>
-
+        
         <TabsContent value="active">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -197,14 +196,14 @@ const Tournaments = () => {
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Nenhum campeonato em andamento</h3>
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? "Nenhum resultado para sua busca. Tente termos diferentes."
+                {searchTerm 
+                  ? "Nenhum resultado para sua busca. Tente termos diferentes." 
                   : "Não há campeonatos ativos no momento. Confira os próximos campeonatos!"}
               </p>
             </div>
           )}
         </TabsContent>
-
+        
         <TabsContent value="completed">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -223,14 +222,14 @@ const Tournaments = () => {
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Nenhum campeonato finalizado</h3>
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? "Nenhum resultado para sua busca. Tente termos diferentes."
+                {searchTerm 
+                  ? "Nenhum resultado para sua busca. Tente termos diferentes." 
                   : "Não há campeonatos finalizados ainda."}
               </p>
             </div>
           )}
         </TabsContent>
-
+        
         <TabsContent value="cancelled">
           {loading ? (
             <div className="flex justify-center py-12">
@@ -249,8 +248,8 @@ const Tournaments = () => {
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Nenhum campeonato cancelado</h3>
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? "Nenhum resultado para sua busca. Tente termos diferentes."
+                {searchTerm 
+                  ? "Nenhum resultado para sua busca. Tente termos diferentes." 
                   : "Não há campeonatos cancelados."}
               </p>
             </div>
