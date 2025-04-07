@@ -52,7 +52,7 @@ const getStatusText = (status: string) => {
 };
 
 const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: TournamentCardProps) => {
-  const { isAdmin } = useAuth();
+  const {user, isAdmin } = useAuth();
   const canBeManaged = tournament.status === 'upcoming' || tournament.status === 'active';
   
   return (
@@ -92,7 +92,7 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
         </div>
       </CardContent>
       <CardFooter className="pt-0 flex flex-col gap-2 w-full">
-        {Users && !isAdmin && tournament.status === 'upcoming' && (
+        {user && !isAdmin && (tournament.status === 'upcoming' || tournament.status === 'active') && (
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
               Inscrito
