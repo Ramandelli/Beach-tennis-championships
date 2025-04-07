@@ -74,7 +74,7 @@ export interface Tournament {
   startDate: Date;
   endDate: Date;
   location: string;
-  status: 'upcoming' | 'active' | 'completed';
+  status: 'upcoming' | 'active' | 'completed' | 'cancelled';
   categories: string[]; // e.g. ["masculino", "feminino", "misto"]
   participants: string[]; // UIDs of registered players
   matches: Match[];
@@ -538,7 +538,7 @@ export const updateMatchResult = async (matchId: string, score: string, winner: 
   }
 };
 
-export const updateTournamentStatus = async (tournamentId: string, status: 'upcoming' | 'active' | 'completed') => {
+export const updateTournamentStatus = async (tournamentId: string, status: 'upcoming' | 'active' | 'completed' | 'cancelled') => {
   try {
     const tournamentRef = doc(db, "tournaments", tournamentId);
     await updateDoc(tournamentRef, { status });

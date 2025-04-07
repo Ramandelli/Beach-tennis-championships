@@ -1,13 +1,13 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   createTournament, 
   getTournaments, 
@@ -16,10 +16,11 @@ import {
   getPlayerProfile, 
   createMatch, 
   updateMatchResult,
+  updateTournamentStatus,
   Match
 } from "@/lib/firebase";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarIcon, TrophyIcon, UsersIcon, ClockIcon, CheckCircleIcon, PlusCircleIcon, XCircleIcon } from "lucide-react";
+import { CalendarIcon, TrophyIcon, UsersIcon, ClockIcon, CheckCircleIcon, PlusCircleIcon, XCircleIcon, BanIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { addDays, format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -44,7 +45,6 @@ const AdminPage = () => {
   const [newCategory, setNewCategory] = useState("");
   const [openTournamentDialog, setOpenTournamentDialog] = useState(false);
   
-  // Fetch tournaments
   const { data: tournaments, isLoading: isLoadingTournaments, refetch: refetchTournaments } = useQuery({
     queryKey: ['admin-tournaments'],
     queryFn: async () => {
@@ -83,7 +83,6 @@ const AdminPage = () => {
         description: "Campeonato criado com sucesso",
       });
       
-      // Reset form
       setTournamentName("");
       setTournamentDescription("");
       setTournamentLocation("");
@@ -93,10 +92,8 @@ const AdminPage = () => {
       });
       setCategories(["masculino", "feminino", "misto"]);
       
-      // Close dialog
       setOpenTournamentDialog(false);
       
-      // Refresh tournaments list
       refetchTournaments();
     } catch (error) {
       console.error("Error creating tournament:", error);
@@ -150,7 +147,6 @@ const AdminPage = () => {
           <TabsTrigger value="players">Jogadores</TabsTrigger>
         </TabsList>
         
-        {/* Tournaments Tab */}
         <TabsContent value="tournaments" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Gerenciar Campeonatos</h2>
@@ -310,7 +306,6 @@ const AdminPage = () => {
           )}
         </TabsContent>
         
-        {/* Players Tab */}
         <TabsContent value="players">
           <PlayersList />
         </TabsContent>
@@ -319,10 +314,32 @@ const AdminPage = () => {
   );
 };
 
-// Tournament Card Component
 const TournamentCard = ({ tournament, onRefetch }: { tournament: Tournament, onRefetch: () => void }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [activeTab, setActiveTab] = useState("players");
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const { toast } = useToast();
+  
+  const handleCancelTournament = async () => {
+    try {
+      await updateTournamentStatus(tournament.id, 'cancelled');
+      toast({
+        title: "Campeonato cancelado",
+        description: "O campeonato foi cancelado com sucesso.",
+      });
+      setShowCancelDialog(false);
+      if (onRefetch) {
+        onRefetch();
+      }
+    } catch (error) {
+      console.error("Error canceling tournament:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível cancelar o campeonato",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <Card>
@@ -333,10 +350,12 @@ const TournamentCard = ({ tournament, onRefetch }: { tournament: Tournament, onR
             "text-xs font-medium rounded-full px-2 py-1",
             tournament.status === 'upcoming' ? "bg-blue-100 text-blue-800" :
             tournament.status === 'active' ? "bg-green-100 text-green-800" :
+            tournament.status === 'cancelled' ? "bg-red-100 text-red-800" :
             "bg-gray-100 text-gray-800"
           )}>
             {tournament.status === 'upcoming' ? 'Próximo' :
              tournament.status === 'active' ? 'Em andamento' :
+             tournament.status === 'cancelled' ? 'Cancelado' :
              'Finalizado'}
           </span>
         </CardTitle>
@@ -367,9 +386,36 @@ const TournamentCard = ({ tournament, onRefetch }: { tournament: Tournament, onR
             {tournament.participants.length} participantes
           </div>
           
-          <Button variant="outline" onClick={() => setShowDetails(true)}>
-            Gerenciar
-          </Button>
+          <div className="flex gap-2">
+            {tournament.status === 'upcoming' && (
+              <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <BanIcon className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar cancelamento</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Você tem certeza que deseja cancelar este campeonato? 
+                      Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelTournament} className="bg-red-600 hover:bg-red-700">
+                      Confirmar cancelamento
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button variant="outline" onClick={() => setShowDetails(true)}>
+              Gerenciar
+            </Button>
+          </div>
         </div>
         
         <Dialog open={showDetails} onOpenChange={setShowDetails}>
@@ -405,7 +451,6 @@ const TournamentCard = ({ tournament, onRefetch }: { tournament: Tournament, onR
   );
 };
 
-// Players List Component
 const PlayersList = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -417,13 +462,10 @@ const PlayersList = () => {
     queryFn: async () => await getTournaments()
   });
   
-  // Fetch players with tournament data
   const { data: allPlayers, isLoading } = useQuery({
     queryKey: ['admin-players'],
     queryFn: async () => {
       try {
-        // This is just an example, you'd need to implement a function to fetch all players
-        // For now, let's fetch players from tournament participants
         const uniquePlayerIds = new Set<string>();
         const playerProfiles: PlayerProfile[] = [];
         
@@ -455,7 +497,6 @@ const PlayersList = () => {
     enabled: !!tournaments
   });
   
-  // Filter players based on search query
   const filteredPlayers = allPlayers?.filter(player => 
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     player.email.toLowerCase().includes(searchQuery.toLowerCase())

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getTournaments, Tournament, registerPlayerForTournament } from "@/lib/firebase";
@@ -16,6 +15,7 @@ const Tournaments = () => {
   const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
   const [activeTournaments, setActiveTournaments] = useState<Tournament[]>([]);
   const [completedTournaments, setCompletedTournaments] = useState<Tournament[]>([]);
+  const [cancelledTournaments, setCancelledTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [registering, setRegistering] = useState<string | null>(null);
@@ -31,6 +31,7 @@ const Tournaments = () => {
         setUpcomingTournaments(tournaments.filter(t => t.status === 'upcoming'));
         setActiveTournaments(tournaments.filter(t => t.status === 'active'));
         setCompletedTournaments(tournaments.filter(t => t.status === 'completed'));
+        setCancelledTournaments(tournaments.filter(t => t.status === 'cancelled'));
       } catch (error) {
         console.error("Error fetching tournaments:", error);
         toast({
@@ -67,7 +68,6 @@ const Tournaments = () => {
         description: "Você foi inscrito com sucesso neste campeonato!",
       });
       
-      // Update local state
       const updatedTournaments = allTournaments.map(tournament => {
         if (tournament.id === tournamentId) {
           return {
@@ -139,6 +139,9 @@ const Tournaments = () => {
           </TabsTrigger>
           <TabsTrigger value="completed">
             Finalizados ({completedTournaments.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled">
+            Cancelados ({cancelledTournaments.length})
           </TabsTrigger>
         </TabsList>
         
@@ -219,6 +222,32 @@ const Tournaments = () => {
                 {searchTerm 
                   ? "Nenhum resultado para sua busca. Tente termos diferentes." 
                   : "Não há campeonatos finalizados ainda."}
+              </p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="cancelled">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <CalendarClock className="h-12 w-12 animate-pulse text-muted-foreground" />
+            </div>
+          ) : filterTournaments(cancelledTournaments).length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filterTournaments(cancelledTournaments).map((tournament) => (
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold mb-2">Nenhum campeonato cancelado</h3>
+              <p className="text-muted-foreground">
+                {searchTerm 
+                  ? "Nenhum resultado para sua busca. Tente termos diferentes." 
+                  : "Não há campeonatos cancelados."}
               </p>
             </div>
           )}
