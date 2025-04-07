@@ -89,12 +89,14 @@ const Navbar = () => {
                       <span>Meu Perfil</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/my-tournaments" className="cursor-pointer flex items-center">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      <span>Meus Campeonatos</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {!isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-tournaments" className="cursor-pointer flex items-center">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        <span>Meus Campeonatos</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -162,14 +164,16 @@ const Navbar = () => {
                   <User className="inline-block mr-2 h-4 w-4" />
                   Meu Perfil
                 </Link>
-                <Link
-                  to="/my-tournaments"
-                  className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Calendar className="inline-block mr-2 h-4 w-4" />
-                  Meus Campeonatos
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    to="/my-tournaments"
+                    className="block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Calendar className="inline-block mr-2 h-4 w-4" />
+                    Meus Campeonatos
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     handleSignOut();

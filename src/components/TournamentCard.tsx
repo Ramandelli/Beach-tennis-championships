@@ -54,6 +54,7 @@ const getStatusText = (status: string) => {
 
 const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: TournamentCardProps) => {
   const { isAdmin } = useAuth();
+  const canBeManaged = tournament.status === 'upcoming' || tournament.status === 'active';
   
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow">
@@ -106,6 +107,18 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
               {loading ? "Processando..." : "Inscrever-se"}
             </Button>
           )
+        )}
+        {isAdmin && (
+          <Button
+            asChild
+            className="w-full"
+            variant="secondary"
+            disabled={!canBeManaged}
+          >
+            <Link to={`/admin/tournaments/${tournament.id}`}>
+              Gerenciar
+            </Link>
+          </Button>
         )}
         <Button asChild className="w-full" variant="outline">
           <Link to={`/tournaments/${tournament.id}`}>
