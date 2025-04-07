@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,12 +107,11 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
             </Button>
           )
         )}
-        {isAdmin && (
+        {isAdmin && canBeManaged && (
           <Button
             asChild
             className="w-full"
             variant="secondary"
-            disabled={!canBeManaged}
           >
             <Link to={`/admin/tournaments/${tournament.id}`}>
               Gerenciar
