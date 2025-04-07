@@ -87,16 +87,16 @@ const TournamentCard = ({ tournament, isRegistered, onRegister, loading }: Tourn
         </div>
       </CardContent>
       <CardFooter className="pt-0">
-        {tournament.status === 'upcoming' ? (
+        {isAdmin ? (
+          <Button asChild className="w-full">
+            <Link to={`/tournaments/${tournament.id}`}>
+              Ver detalhes
+            </Link>
+          </Button>
+        ) : tournament.status === 'upcoming' ? (
           isRegistered ? (
             <Button disabled className="w-full bg-green-500 hover:bg-green-600">
               Inscrito
-            </Button>
-          ) : isAdmin ? (
-            <Button asChild className="w-full">
-              <Link to={`/tournaments/${tournament.id}`}>
-                Ver detalhes
-              </Link>
             </Button>
           ) : (
             <Button 
